@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{khachhang/layout :: head('Lập hóa đơn')}"></head>
+<body>
+    <div th:replace="~{khachhang/layout :: page(~{::section})}">
+        <section>
+            <div class="page-heading">
+                <div>
+                    <h1>Lập hóa đơn</h1>
+                </div>
+            </div>
+            <p th:if="${errorMessage}" class="message error" th:text="${errorMessage}"></p>
+            <p th:if="${#lists.isEmpty(khachHangs)}" class="message error">Chưa có khách hàng. Hãy thêm khách hàng trước.</p>
+            <div th:if="${isCashier}" class="cashier-sale-notice" role="note">
+                <span class="cashier-sale-notice-icon" aria-hidden="true">i</span>
+                <p>Cổng thanh toán điện tử chưa được kết nối. Hãy xác nhận giao dịch bên ngoài trước khi ghi nhận.</p>
+            </div>
+            <div th:if="${isCashier}" class="cashier-customer-action">
+                <a th:href="@{/khach-hang/them(from='sale')}" class="btn btn-outline-primary">＋ Thêm khách hàng mới</a>
+            </div>
+
+            <div th:if="${#lists.isEmpty(matHangs)}" class="message error">
+                <strong>Chưa có mặt hàng còn tồn để bán.</strong>
+                <p th:if="${isAdmin}">Hãy kiểm tra mặt hàng, tạo phiếu nhập và xác nhận đã nhận hàng trước khi lập hóa đơn.</p>
+                <p th:if="${isCashier}">Vui lòng báo quản lý nhập hàng và xác nhận phiếu nhập. Sau đó tải lại trang bán hàng.</p>
+                <div th:if="${isAdmin}">
+                    <a th:href="@{/mat-hang}" class="btn btn-primary">Kiểm tra mặt hàng</a>
+                    <a th:href="@{/nhap-hang/nha-cung-cap}" class="btn btn-primary">Quản lý nhà cung cấp</a>
+                    <a th:href="@{/nhap-hang/tao}" class="btn btn-success">Tạo phiếu nhập kho</a>
+                </div>
+            </div>
+
+            <form th:if="${!#lists.isEmpty(matHangs)}"
+                  th:action="@{/hoa-don/lap}" th:object="${invoiceForm}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="form-group">
+                    <label for="customerId">Khách hàng</label>
+                    <select id="customerId" th:field="*{customerId}" required>
+                        <option value="">-- Chọn khách hàng --</option>
+                        <option th:each="kh : ${khachHangs}" th:value="${kh.maKhachHang}"
+                                th:text="${kh.hoTen + ' (mã ' + kh.maKhachHang + ')'}"
+                                th:attr="data-points=${kh.diemThuong != null ? kh.diemThuong : 0}"></option>
+                    </select>
+                </div>
+                <p>Điểm hiện có: <strong id="points-balance" th:text="${redeemablePoints}"></strong> (1 điểm = 1.000đ)</p>
+                <div class="form-group">
+                    <label for="pointsToRedeem">Điểm muốn dùng</label>
+                    <input id="pointsToRedeem" type="number" min="0" th:field="*{pointsToRedeem}">
+                </div>
+                <div class="form-group">
+                    <label for="paymentMethod">Phương thức thanh toán</label>
+                    <select id="paymentMethod" th:field="*{paymentMethod}" required>
+                        <option value="">-- Chọn phương thức --</option>
+                        <option th:each="method : ${paymentMethods}" th:value="${method}" th:text="${method.displayName}"></option>
+                    </select>
+                </div>
+                <div class="form-group" id="cash-tendered-group">
+                    <label for="cashTendered">Tiền mặt khách đưa (chỉ áp dụng tiền mặt)</label>
+                    <input id="cashTendered" type="number" min="0" step="0.01" th:field="*{cashTendered}">
+                </div>
+                <div class="form-group" id="external-payment-confirmation" hidden>
+                    <label>
+                        <input id="nonCashPaymentConfirmed" type="checkbox" th:field="*{nonCashPaymentConfirmed}">
+                        Tôi đã kiểm tra và xác nhận giao dịch chuyển khoản/ví đã thành công.
+                    </label>
+                </div>
+
+                <h3>Mặt hàng</h3>
+                <div class="form-group">
+                    <label for="product-search">Tìm mặt hàng</label>
+                    <input id="product-search" type="search" placeholder="Nhập tên mặt hàng để lọc">
+                </div>
+                <div id="invoice-lines">
+                    <div class="invoice-line form-group" th:each="line, row : *{lines}">
+                        <label th:for="${'product-' + row.index}">Mặt hàng</label>
+                        <select th:id="${'product-' + row.index}" th:field="*{lines[__${row.index}__].productId}">
+                            <option value="">-- Chọn mặt hàng --</option>
+                            <option th:each="mh : ${matHangs}" th:value="${mh.maMatHang}"
+                                    th:text="${mh.tenMatHang + ' (còn ' + mh.quantityInStock + ') - ' + (giaMatHangs[mh.maMatHang] != null ? #numbers.formatDecimal(giaMatHangs[mh.maMatHang], 0, 'COMMA', 0, 'POINT') + ' đ' : 'Chưa có giá hợp lệ')}"></option>
+                        </select>
+                        <label th:for="${'quantity-' + row.index}">Số lượng</label>
+                        <input th:id="${'quantity-' + row.index}" type="number" min="1"
+                               th:field="*{lines[__${row.index}__].quantity}">
+                    </div>
+                </div>
+                <button id="add-line" type="button" class="btn btn-primary">+ Thêm dòng hàng</button>
+                <button type="submit" class="btn btn-success">Lưu hóa đơn</button>
+            </form>
+
+            <template th:if="${!#lists.isEmpty(matHangs)}" id="line-template">
+                <div class="invoice-line form-group">
+                    <label>Mặt hàng</label>
+                    <select name="lines[__index__].productId">
+                        <option value="">-- Chọn mặt hàng --</option>
+                        <option th:each="mh : ${matHangs}" th:value="${mh.maMatHang}"
+                                th:text="${mh.tenMatHang + ' (còn ' + mh.quantityInStock + ') - ' + (giaMatHangs[mh.maMatHang] != null ? #numbers.formatDecimal(giaMatHangs[mh.maMatHang], 0, 'COMMA', 0, 'POINT') + ' đ' : 'Chưa có giá hợp lệ')}"></option>
+                    </select>
+                    <label>Số lượng</label>
+                    <input type="number" min="1" name="lines[__index__].quantity">
+                </div>
+            </template>
+            <script th:if="${!#lists.isEmpty(matHangs)}">
+                const lineTemplate = document.getElementById('line-template');
+                const lineContainer = document.getElementById('invoice-lines');
+                const searchInput = document.getElementById('product-search');
+                const customerSelect = document.getElementById('customerId');
+                const pointsBalance = document.getElementById('points-balance');
+                const pointsToRedeem = document.getElementById('pointsToRedeem');
+                const paymentMethod = document.getElementById('paymentMethod');
+                const cashTenderedGroup = document.getElementById('cash-tendered-group');
+                const externalPaymentConfirmation = document.getElementById('external-payment-confirmation');
+                const nonCashPaymentConfirmed = document.getElementById('nonCashPaymentConfirmed');
+                customerSelect.addEventListener('change', () => {
+                    const selected = customerSelect.selectedOptions[0];
+                    const availablePoints = selected.dataset.points || '0';
+                    pointsBalance.textContent = availablePoints;
+                    pointsToRedeem.max = availablePoints;
+                });
+                const updateCashInput = () => {
+                    const isCash = paymentMethod.value === 'TIEN_MAT';
+                    cashTenderedGroup.hidden = !isCash;
+                    document.getElementById('cashTendered').required = isCash;
+                    externalPaymentConfirmation.hidden = isCash || !paymentMethod.value;
+                    nonCashPaymentConfirmed.required = !isCash && Boolean(paymentMethod.value);
+                };
+                paymentMethod.addEventListener('change', updateCashInput);
+                updateCashInput();
+                searchInput.addEventListener('input', () => {
+                    const query = searchInput.value.trim().toLocaleLowerCase();
+                    lineContainer.querySelectorAll('select').forEach((select) => {
+                        Array.from(select.options).forEach((option, index) => {
+                            option.hidden = index > 0 && !option.text.toLocaleLowerCase().includes(query);
+                        });
+                    });
+                });
+                document.getElementById('add-line').addEventListener('click', () => {
+                    const index = lineContainer.querySelectorAll('.invoice-line').length;
+                    const line = lineTemplate.content.cloneNode(true);
+                    line.querySelectorAll('[name]').forEach((input) => {
+                        input.name = input.name.replace('__index__', index);
+                    });
+                    lineContainer.appendChild(line);
+                });
+            </script>
+        </section>
+    </div>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{khachhang/layout :: head('Chi tiết hóa đơn')}"></head>
+<body>
+    <div th:replace="~{khachhang/layout :: page(~{::section})}">
+        <section class="invoice-detail">
+            <header class="invoice-detail-header">
+                <div>
+                    <p class="invoice-eyebrow">Chi tiết giao dịch</p>
+                    <h1>Hóa đơn <span th:text="${hoaDon.maHoaDon}"></span></h1>
+                </div>
+                <span class="invoice-status"
+                      th:classappend="${hoaDon.cancelled} ? ' is-cancelled' : ' is-paid'"
+                      th:text="${hoaDon.cancelled} ? 'Đã hủy' : 'Đã thanh toán'"
+                      role="status"></span>
+            </header>
+
+            <p th:if="${successMessage}" class="message success" th:text="${successMessage}"></p>
+            <p th:if="${errorMessage}" class="message error" th:text="${errorMessage}"></p>
+
+            <div th:if="${hoaDon.cancelled}" class="invoice-cancellation">
+                <strong>Hóa đơn đã được hủy</strong>
+                <span>
+                    lúc <span th:text="${#temporals.format(hoaDon.cancelledAt, 'dd/MM/yyyy HH:mm')}"></span>
+                    bởi <span th:text="${hoaDon.cancelledBy != null ? hoaDon.cancelledBy.fullName : '-'}"></span>
+                </span>
+                <span>Lý do: <span th:text="${hoaDon.cancellationReason}"></span></span>
+            </div>
+
+            <dl class="invoice-meta">
+                <div class="invoice-meta-item">
+                    <dt>Khách hàng</dt>
+                    <dd th:text="${hoaDon.khachHang != null ? hoaDon.khachHang.hoTen : 'Khách lẻ'}"></dd>
+                </div>
+                <div class="invoice-meta-item">
+                    <dt>Thời gian</dt>
+                    <dd th:text="${hoaDon.thoiGianThanhToan != null ? #temporals.format(hoaDon.thoiGianThanhToan, 'dd/MM/yyyy HH:mm') : '-'}"></dd>
+                </div>
+                <div class="invoice-meta-item">
+                    <dt>Thu ngân</dt>
+                    <dd th:text="${hoaDon.thuNgan != null ? hoaDon.thuNgan.username : 'Không lưu (hóa đơn cũ)'}"></dd>
+                </div>
+                <div class="invoice-meta-item">
+                    <dt>Thanh toán</dt>
+                    <dd th:text="${hoaDon.phuongThucThanhToan != null ? hoaDon.phuongThucThanhToan.displayName : 'Tiền mặt'}"></dd>
+                </div>
+            </dl>
+
+            <section class="invoice-items" aria-labelledby="invoice-items-title">
+                <div class="invoice-section-heading">
+                    <h2 id="invoice-items-title">Sản phẩm đã mua</h2>
+                    <span th:text="${#lists.size(hoaDon.chiTiet) + ' mặt hàng'}"></span>
+                </div>
+                <div class="invoice-table-scroll">
+                    <table class="invoice-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Mặt hàng</th>
+                                <th scope="col">Đơn giá lúc bán</th>
+                                <th scope="col">Số lượng</th>
+                                <th scope="col">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="ct : ${hoaDon.chiTiet}">
+                                <td class="invoice-product-name" th:text="${ct.matHang.tenMatHang}"></td>
+                                <td th:text="${#numbers.formatDecimal(ct.giaTaiThoiDiem != null ? ct.giaTaiThoiDiem : ct.matHang.giaApDung(hoaDon.thoiGianThanhToan), 0, 'COMMA', 0, 'POINT') + ' đ'}"></td>
+                                <td th:text="${ct.soLuong}"></td>
+                                <td class="invoice-line-total" th:text="${#numbers.formatDecimal(ct.thanhTien, 0, 'COMMA', 0, 'POINT') + ' đ'}"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="invoice-totals" aria-label="Thanh toán và điểm thưởng">
+                <div class="invoice-rewards">
+                    <div>
+                        <span>Điểm đã dùng</span>
+                        <strong th:text="${hoaDon.diemThuongDung != null ? hoaDon.diemThuongDung : 0}"></strong>
+                    </div>
+                    <div>
+                        <span>Điểm được cộng</span>
+                        <strong th:text="${hoaDon.diemThuongCong != null ? hoaDon.diemThuongCong : 0}"></strong>
+                    </div>
+                </div>
+                <div class="invoice-payment-summary">
+                    <div>
+                        <span>Tiền khách đưa</span>
+                        <strong th:text="${hoaDon.tienKhachTra != null ? #numbers.formatDecimal(hoaDon.tienKhachTra, 0, 'COMMA', 0, 'POINT') + ' đ' : '-'}"></strong>
+                    </div>
+                    <div>
+                        <span>Tiền thừa</span>
+                        <strong th:text="${hoaDon.tienThua != null ? #numbers.formatDecimal(hoaDon.tienThua, 0, 'COMMA', 0, 'POINT') + ' đ' : '-'}"></strong>
+                    </div>
+                    <div class="invoice-grand-total">
+                        <span>Tổng thanh toán</span>
+                        <strong th:text="${#numbers.formatDecimal(hoaDon.tongTien, 0, 'COMMA', 0, 'POINT') + ' đ'}"></strong>
+                    </div>
+                </div>
+            </section>
+
+            <footer class="invoice-actions">
+                <a class="btn btn-secondary" th:if="${isAdmin}" th:href="@{/hoa-don}">Lịch sử hóa đơn</a>
+                <a class="btn btn-secondary" th:if="${isCashier}" th:href="@{/hoa-don/lap}">Quay lại bán hàng</a>
+                <a class="btn btn-primary" th:href="@{/hoa-don/{id}/pdf(id=${hoaDon.maHoaDon})}">Tải hóa đơn PDF</a>
+            </footer>
+
+            <form th:if="${(isAdmin or isManager) and !hoaDon.cancelled}"
+                  class="invoice-cancel-form"
+                  th:action="@{/hoa-don/{id}/huy(id=${hoaDon.maHoaDon})}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="form-group">
+                    <label for="reason">Lý do hủy hóa đơn</label>
+                    <input id="reason" type="text" name="reason" maxlength="500" required>
+                </div>
+                <button type="submit" class="btn btn-danger"
+                        onclick="return confirm('Hủy hóa đơn này và hoàn lại hàng/điểm thưởng?')">
+                    Hủy hóa đơn
+                </button>
+            </form>
+        </section>
+    </div>
+</body>
+</html>

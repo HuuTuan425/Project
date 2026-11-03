@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{khachhang/layout :: head('Danh sách khách hàng')}"></head>
+<body>
+    <div th:replace="~{khachhang/layout :: page(~{::section})}">
+        <section>
+            <div class="page-heading">
+                <div>
+                    <h1>Danh sách khách hàng</h1>
+                    <p class="list-count" th:text="${'Hiển thị ' + totalCustomers + ' khách hàng'}"></p>
+                </div>
+                <a th:href="@{/khach-hang/them}" class="btn btn-success">＋ Thêm khách hàng</a>
+            </div>
+            <form th:action="@{/khach-hang}" method="get" class="customer-filter">
+                <div>
+                    <label for="customer-search">Tìm kiếm khách hàng</label>
+                    <input id="customer-search" type="search" name="q" th:value="${q}"
+                           placeholder="Tìm theo họ tên, SĐT, CCCD...">
+                </div>
+                <button type="submit" class="btn btn-primary">Tìm kiếm</button>
+                <a th:if="${not #strings.isEmpty(q)}" th:href="@{/khach-hang}"
+                   class="btn btn-secondary">Xóa bộ lọc</a>
+            </form>
+
+            <div th:if="${totalCustomers == 0}" class="invoice-no-results" role="status" aria-live="polite">
+                <strong th:if="${#strings.isEmpty(q)}">Chưa có khách hàng nào.</strong>
+                <strong th:if="${not #strings.isEmpty(q)}">
+                    Không tìm thấy khách hàng phù hợp với từ khóa “<span th:text="${q}"></span>”.
+                </strong>
+                <span th:if="${not #strings.isEmpty(q)}">Hãy kiểm tra họ tên, số điện thoại hoặc CCCD rồi thử lại.</span>
+            </div>
+
+            <div class="customer-table-scroll">
+                <table class="customer-table align-middle">
+                    <thead>
+                        <tr>
+                            <th class="text-center" scope="col">Mã KH</th>
+                            <th scope="col">Họ tên</th>
+                            <th class="text-center" scope="col">CMND/CCCD</th>
+                            <th class="text-center" scope="col">SĐT</th>
+                            <th class="text-center" scope="col">Điểm thưởng</th>
+                            <th class="text-center" scope="col">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="kh : ${dsKhachHang}">
+                            <td class="text-center" th:text="${kh.maKhachHang}"></td>
+                            <td th:text="${kh.hoTen}"></td>
+                            <td class="text-center"
+                                th:text="${#strings.isEmpty(kh.soCMND) ? '-' : kh.soCMND}"></td>
+                            <td class="text-center"
+                                th:text="${#strings.isEmpty(kh.soDienThoai) ? '-' : kh.soDienThoai}"></td>
+                            <td class="text-center">
+                                <span class="customer-points"
+                                      th:text="${(kh.diemThuong != null ? kh.diemThuong : 0) + ' điểm'}"></span>
+                            </td>
+                            <td class="text-center">
+                                <div class="customer-actions">
+                                    <a th:href="@{/khach-hang/sua/{id}(id=${kh.maKhachHang})}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <span aria-hidden="true">✏️</span> Sửa
+                                    </a>
+                                    <a th:href="@{/khach-hang/xoa/{id}(id=${kh.maKhachHang})}"
+                                       class="btn btn-sm btn-outline-danger"
+                                       onclick="return confirm('Bạn có chắc muốn xóa khách hàng này?')">
+                                        <span aria-hidden="true">🗑️</span> Xóa
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(dsKhachHang)}">
+                            <td colspan="6" class="invoice-history-empty">Không có dữ liệu để hiển thị.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <nav th:if="${totalCustomers > 0}" class="pagination-bar" aria-label="Phân trang khách hàng">
+                <span class="pagination-summary"
+                      th:text="${'Hiển thị ' + pageStart + '–' + pageEnd + ' trên ' + totalCustomers + ' khách hàng · Trang ' + (currentPage + 1) + '/' + totalPages}"></span>
+                <div class="pagination-controls">
+                    <a th:if="${currentPage > 0}" class="pagination-link"
+                       th:href="@{/khach-hang(q=${q},page=0)}">Đầu</a>
+                    <span th:unless="${currentPage > 0}" class="pagination-link is-disabled">Đầu</span>
+                    <a th:if="${currentPage > 0}" class="pagination-link"
+                       th:href="@{/khach-hang(q=${q},page=${currentPage - 1})}">‹</a>
+                    <span th:unless="${currentPage > 0}" class="pagination-link is-disabled">‹</span>
+                    <a th:each="pageNumber : ${#numbers.sequence(0, totalPages - 1)}"
+                       th:if="${pageNumber >= currentPage - 2 and pageNumber <= currentPage + 2}"
+                       th:class="${pageNumber == currentPage ? 'pagination-link is-current' : 'pagination-link'}"
+                       th:attr="aria-current=${pageNumber == currentPage ? 'page' : null}"
+                       th:href="@{/khach-hang(q=${q},page=${pageNumber})}"
+                       th:text="${pageNumber + 1}"></a>
+                    <a th:if="${currentPage + 1 < totalPages}" class="pagination-link"
+                       th:href="@{/khach-hang(q=${q},page=${currentPage + 1})}">›</a>
+                    <span th:unless="${currentPage + 1 < totalPages}" class="pagination-link is-disabled">›</span>
+                    <a th:if="${currentPage + 1 < totalPages}" class="pagination-link"
+                       th:href="@{/khach-hang(q=${q},page=${totalPages - 1})}">Cuối</a>
+                    <span th:unless="${currentPage + 1 < totalPages}" class="pagination-link is-disabled">Cuối</span>
+                </div>
+            </nav>
+        </section>
+    </div>
+</body>
+</html>

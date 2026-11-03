@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{khachhang/layout :: head('Lịch sử hóa đơn')}"></head>
+<body>
+    <div th:replace="~{khachhang/layout :: page(~{::section})}">
+        <section>
+            <div class="page-heading">
+                <div>
+                    <h1>Lịch sử hóa đơn</h1>
+                </div>
+                <div class="invoice-actions">
+                    <a th:href="@{/hoa-don/lap}" class="btn btn-success">＋ Lập hóa đơn</a>
+                    <a th:href="@{/hoa-don/bao-cao}" class="btn btn-outline-primary">Báo cáo doanh thu</a>
+                </div>
+            </div>
+            <p th:if="${successMessage}" class="message success" th:text="${successMessage}"></p>
+            <p th:if="${errorMessage}" class="message error" th:text="${errorMessage}"></p>
+            <form th:action="@{/hoa-don}" method="get" class="invoice-filter">
+                <div class="invoice-search-field">
+                    <label for="invoice-search">Tìm hóa đơn</label>
+                    <input id="invoice-search" type="search" name="q" th:value="${q}"
+                           placeholder="Mã hóa đơn hoặc tên khách hàng">
+                </div>
+                <div>
+                    <label for="invoice-from">Từ ngày</label>
+                    <input id="invoice-from" type="date" name="tuNgay" th:value="${tuNgay}">
+                </div>
+                <div>
+                    <label for="invoice-to">Đến ngày</label>
+                    <input id="invoice-to" type="date" name="denNgay" th:value="${denNgay}">
+                </div>
+                <div>
+                    <label for="invoice-status">Trạng thái</label>
+                    <select id="invoice-status" name="trangThai">
+                        <option value="" th:selected="${trangThai == ''}">Tất cả trạng thái</option>
+                        <option value="PAID" th:selected="${trangThai == 'PAID'}">Đã thanh toán</option>
+                        <option value="CANCELLED" th:selected="${trangThai == 'CANCELLED'}">Đã hủy</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Lọc hóa đơn</button>
+            </form>
+            <div th:if="${totalInvoices == 0}" class="invoice-no-results" role="status" aria-live="polite">
+                <strong th:if="${#strings.isEmpty(q) and tuNgay == null and denNgay == null and #strings.isEmpty(trangThai)}">
+                    Chưa có hóa đơn nào.
+                </strong>
+                <strong th:if="${not #strings.isEmpty(q)}">
+                    Không tìm thấy hóa đơn phù hợp với từ khóa
+                    “<span th:text="${q}"></span>”.
+                </strong>
+                <strong th:if="${#strings.isEmpty(q) and (tuNgay != null or denNgay != null or not #strings.isEmpty(trangThai))}">
+                    Không tìm thấy hóa đơn phù hợp với bộ lọc đã chọn.
+                </strong>
+                <span th:if="${not #strings.isEmpty(q)}">
+                    Hãy kiểm tra lại mã hóa đơn hoặc tên khách hàng rồi thử lại.
+                </span>
+            </div>
+            <div class="invoice-history-scroll">
+                <table class="invoice-history-table align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">Mã hóa đơn</th>
+                            <th scope="col">Khách hàng</th>
+                            <th scope="col">Thời gian</th>
+                            <th scope="col" class="text-center">Số mặt hàng</th>
+                            <th scope="col">Tổng tiền</th>
+                            <th scope="col" class="text-center">Trạng thái</th>
+                            <th scope="col" class="text-center">Chi tiết</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="hd : ${dsHoaDon}">
+                            <td th:text="${hd.maHoaDon}"></td>
+                            <td th:text="${hd.khachHang != null ? hd.khachHang.hoTen : 'Khách lẻ'}"></td>
+                            <td th:text="${hd.thoiGianThanhToan != null ? #temporals.format(hd.thoiGianThanhToan, 'dd/MM/yyyy HH:mm') : '-'}"></td>
+                            <td class="text-center" th:text="${hd.chiTiet != null ? #lists.size(hd.chiTiet) : 0}"></td>
+                            <td th:text="${hd.tongTien != null ? #numbers.formatDecimal(hd.tongTien, 0, 'COMMA', 0, 'POINT') + ' đ' : '-'}"></td>
+                            <td class="text-center">
+                                <span th:class="${hd.cancelled ? 'invoice-badge is-cancelled' : 'invoice-badge is-paid'}"
+                                      th:text="${hd.cancelled ? 'Đã hủy' : 'Đã thanh toán'}"></span>
+                            </td>
+                            <td class="text-center">
+                                <a class="btn btn-sm btn-outline-primary"
+                                   th:href="@{/hoa-don/{id}(id=${hd.maHoaDon})}">
+                                    <span aria-hidden="true">👁️</span> Xem
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(dsHoaDon)}">
+                            <td colspan="7" class="invoice-history-empty">Không có dữ liệu để hiển thị.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav th:if="${totalInvoices > 0}" class="pagination-bar" aria-label="Phân trang hóa đơn">
+                <span class="pagination-summary"
+                      th:text="${'Hiển thị ' + pageStart + '–' + pageEnd + ' trên ' + totalInvoices + ' hóa đơn · Trang ' + (currentPage + 1) + '/' + totalPages}"></span>
+                <div class="pagination-controls">
+                    <a th:if="${currentPage > 0}" class="pagination-link"
+                       th:href="@{/hoa-don(q=${q},tuNgay=${tuNgay},denNgay=${denNgay},trangThai=${trangThai},page=0)}">Đầu</a>
+                    <span th:unless="${currentPage > 0}" class="pagination-link is-disabled">Đầu</span>
+                    <a th:if="${currentPage > 0}" class="pagination-link"
+                       th:href="@{/hoa-don(q=${q},tuNgay=${tuNgay},denNgay=${denNgay},trangThai=${trangThai},page=${currentPage - 1})}">Trước</a>
+                    <span th:unless="${currentPage > 0}" class="pagination-link is-disabled">Trước</span>
+                    <a th:each="pageNumber : ${#numbers.sequence(0, totalPages - 1)}"
+                       th:if="${pageNumber >= currentPage - 2 and pageNumber <= currentPage + 2}"
+                       th:class="${pageNumber == currentPage ? 'pagination-link is-current' : 'pagination-link'}"
+                       th:attr="aria-current=${pageNumber == currentPage ? 'page' : null}"
+                       th:href="@{/hoa-don(q=${q},tuNgay=${tuNgay},denNgay=${denNgay},trangThai=${trangThai},page=${pageNumber})}"
+                       th:text="${pageNumber + 1}"></a>
+                    <a th:if="${currentPage + 1 < totalPages}" class="pagination-link"
+                       th:href="@{/hoa-don(q=${q},tuNgay=${tuNgay},denNgay=${denNgay},trangThai=${trangThai},page=${currentPage + 1})}">Sau</a>
+                    <span th:unless="${currentPage + 1 < totalPages}" class="pagination-link is-disabled">Sau</span>
+                    <a th:if="${currentPage + 1 < totalPages}" class="pagination-link"
+                       th:href="@{/hoa-don(q=${q},tuNgay=${tuNgay},denNgay=${denNgay},trangThai=${trangThai},page=${totalPages - 1})}">Cuối</a>
+                    <span th:unless="${currentPage + 1 < totalPages}" class="pagination-link is-disabled">Cuối</span>
+                </div>
+            </nav>
+        </section>
+    </div>
+</body>
+</html>

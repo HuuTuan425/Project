@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{khachhang/layout :: head('Báo cáo doanh thu')}"></head>
+<body>
+    <div th:replace="~{khachhang/layout :: page(~{::section})}">
+        <section>
+            <div class="page-heading">
+                <div>
+                    <h1>Báo cáo doanh thu</h1>
+                </div>
+            </div>
+            <form th:action="@{/hoa-don/bao-cao}" method="get" class="report-filter">
+                <div class="form-group">
+                    <label for="tuNgay">Từ ngày</label>
+                    <input id="tuNgay" type="date" name="tuNgay" th:value="${tuNgay}" required>
+                </div>
+                <div class="form-group">
+                    <label for="denNgay">Đến ngày</label>
+                    <input id="denNgay" type="date" name="denNgay" th:value="${denNgay}" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Xem báo cáo</button>
+            </form>
+            <p th:if="${errorMessage}" class="message error" th:text="${errorMessage}"></p>
+            <div th:if="${summary}" class="report-summary">
+                <div class="report-summary-heading">
+                    <div>
+                        <h2>Thống kê tổng quan</h2>
+                        <p>
+                            Khoảng thời gian:
+                            <strong th:text="${#temporals.format(summary.from, 'dd/MM/yyyy')}"></strong>
+                            – <strong th:text="${#temporals.format(summary.to, 'dd/MM/yyyy')}"></strong>
+                        </p>
+                    </div>
+                </div>
+                <div class="report-stat-grid">
+                    <article class="report-stat-card is-revenue">
+                        <span class="report-stat-icon" aria-hidden="true">💰</span>
+                        <div>
+                            <p>Tổng doanh thu</p>
+                            <strong th:text="${#numbers.formatDecimal(summary.revenue, 0, 'COMMA', 0, 'POINT') + ' đ'}"></strong>
+                        </div>
+                    </article>
+                    <article class="report-stat-card is-invoices">
+                        <span class="report-stat-icon" aria-hidden="true">🧾</span>
+                        <div>
+                            <p>Số hóa đơn</p>
+                            <strong th:text="${summary.invoiceCount}"></strong>
+                        </div>
+                    </article>
+                    <article class="report-stat-card is-cost">
+                        <span class="report-stat-icon" aria-hidden="true">📦</span>
+                        <div>
+                            <p>Tổng giá vốn</p>
+                            <strong th:text="${#numbers.formatDecimal(summary.cost, 0, 'COMMA', 0, 'POINT') + ' đ'}"></strong>
+                        </div>
+                    </article>
+                    <article class="report-stat-card is-profit">
+                        <span class="report-stat-icon" aria-hidden="true">📈</span>
+                        <div>
+                            <p>Lợi nhuận gộp</p>
+                            <strong th:text="${#numbers.formatDecimal(summary.grossProfit, 0, 'COMMA', 0, 'POINT') + ' đ'}"></strong>
+                        </div>
+                    </article>
+                </div>
+                <div class="report-notes">
+                    <p>Doanh thu của dòng hàng đã có giá vốn:
+                        <strong th:text="${#numbers.formatDecimal(summary.costedRevenue, 0, 'COMMA', 0, 'POINT') + ' đ'}"></strong>
+                    </p>
+                    <small th:if="${summary.detailsWithoutCost > 0}"
+                           th:text="${'Chưa thể tính lợi nhuận cho ' + summary.detailsWithoutCost + ' dòng hàng từ hóa đơn cũ chưa lưu giá vốn.'}"></small>
+                    <small>Chỉ số lợi nhuận chưa trừ chi phí vận hành. Hóa đơn đã hủy không được tính vào doanh thu và lợi nhuận.</small>
+                </div>
+                <div class="report-table-heading">
+                    <h2>Doanh thu theo thu ngân</h2>
+                    <a class="btn btn-outline-primary" th:href="@{/hoa-don}">Xem lịch sử hóa đơn <span aria-hidden="true">→</span></a>
+                </div>
+                <div class="report-table-scroll">
+                    <table class="report-table align-middle">
+                        <thead class="table-light">
+                            <tr><th scope="col">Thu ngân</th><th scope="col" class="report-count-cell">Số hóa đơn</th><th scope="col">Doanh thu</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="cashier : ${summary.cashierSales}">
+                                <td th:text="${cashier.cashier}"></td>
+                                <td class="report-count-cell" th:text="${cashier.invoiceCount}"></td>
+                                <td th:text="${#numbers.formatDecimal(cashier.revenue, 0, 'COMMA', 0, 'POINT') + ' đ'}"></td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(summary.cashierSales)}">
+                                <td colspan="3" class="report-empty">Không có hóa đơn trong khoảng thời gian này.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

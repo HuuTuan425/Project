@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{khachhang/layout :: head('Phiếu nhập kho')}"></head>
+<body>
+    <div th:replace="~{khachhang/layout :: page(~{::section})}">
+        <section>
+            <div class="page-heading">
+                <div>
+                    <h1>Phiếu nhập kho</h1>
+                    <p class="list-count" th:text="${'Hiển thị ' + totalOrders + ' phiếu nhập'}"></p>
+                </div>
+                <div class="invoice-actions">
+                    <a th:href="@{/nhap-hang/tao}" class="btn btn-success">＋ Tạo phiếu nhập</a>
+                </div>
+            </div>
+            <p th:if="${successMessage}" class="message success" th:text="${successMessage}"></p>
+            <p th:if="${errorMessage}" class="message error" th:text="${errorMessage}"></p>
+            <form th:action="@{/nhap-hang}" method="get" class="invoice-filter purchase-order-filter">
+                <div class="invoice-search-field">
+                    <label for="purchase-order-search">Tìm phiếu nhập</label>
+                    <input id="purchase-order-search" type="search" name="q" th:value="${q}"
+                           placeholder="Mã phiếu hoặc tên nhà cung cấp">
+                </div>
+                <div>
+                    <label for="purchase-order-from">Từ ngày</label>
+                    <input id="purchase-order-from" type="date" name="tuNgay" th:value="${tuNgay}">
+                </div>
+                <div>
+                    <label for="purchase-order-to">Đến ngày</label>
+                    <input id="purchase-order-to" type="date" name="denNgay" th:value="${denNgay}">
+                </div>
+                <div>
+                    <label for="purchase-order-status">Trạng thái</label>
+                    <select id="purchase-order-status" name="trangThai">
+                        <option value="" th:selected="${trangThai == ''}">Tất cả trạng thái</option>
+                        <option value="RECEIVED" th:selected="${trangThai == 'RECEIVED'}">Đã nhận hàng</option>
+                        <option value="DRAFT" th:selected="${trangThai == 'DRAFT'}">Chờ nhận hàng</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Lọc phiếu nhập</button>
+            </form>
+            <div th:if="${totalOrders == 0}" class="invoice-no-results" role="status" aria-live="polite">
+                <strong th:if="${#strings.isEmpty(q) and tuNgay == null and denNgay == null and #strings.isEmpty(trangThai)}">
+                    Chưa có phiếu nhập nào.
+                </strong>
+                <strong th:if="${not #strings.isEmpty(q)}">
+                    Không tìm thấy phiếu nhập phù hợp với từ khóa “<span th:text="${q}"></span>”.
+                </strong>
+                <strong th:if="${#strings.isEmpty(q) and (tuNgay != null or denNgay != null or not #strings.isEmpty(trangThai))}">
+                    Không tìm thấy phiếu nhập phù hợp với bộ lọc đã chọn.
+                </strong>
+            </div>
+            <div class="invoice-history-scroll">
+                <table class="invoice-history-table align-middle purchase-order-table">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="text-center">Mã phiếu</th>
+                            <th scope="col">Nhà cung cấp</th>
+                            <th scope="col" class="text-center">Ngày tạo</th>
+                            <th scope="col" class="text-center">Ngày nhận</th>
+                            <th scope="col">Giá trị</th>
+                            <th scope="col" class="text-center">Trạng thái</th>
+                            <th scope="col" class="text-center">Chi tiết</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="po : ${purchaseOrders}">
+                            <td class="text-center" th:text="${po.id}"></td>
+                            <td th:text="${po.supplier.name}"></td>
+                            <td class="text-center" th:text="${#temporals.format(po.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                            <td class="text-center" th:text="${po.receivedAt != null ? #temporals.format(po.receivedAt, 'dd/MM/yyyy HH:mm') : '-'}"></td>
+                            <td th:text="${#numbers.formatDecimal(po.totalCost, 0, 'COMMA', 0, 'POINT') + ' đ'}"></td>
+                            <td class="text-center">
+                                <span th:class="${po.status.name() == 'RECEIVED' ? 'invoice-badge is-paid' : 'invoice-badge is-pending'}"
+                                      th:text="${po.status.displayName}"></span>
+                            </td>
+                            <td class="text-center">
+                                <a class="btn btn-sm btn-outline-primary"
+                                   th:href="@{/nhap-hang/{id}(id=${po.id})}">
+                                    <span aria-hidden="true">👁️</span> Xem
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(purchaseOrders)}">
+                            <td colspan="7" class="invoice-history-empty">Không có dữ liệu để hiển thị.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav th:if="${totalOrders > 0}" class="pagination-bar" aria-label="Phân trang phiếu nhập">
+                <span class="pagination-summary"
+                      th:text="${'Hiển thị ' + pageStart + '–' + pageEnd + ' trên ' + totalOrders + ' phiếu · Trang ' + (currentPage + 1) + '/' + totalPages}"></span>
+                <div class="pagination-controls">
+                    <a th:if="${currentPage > 0}" class="pagination-link"
+                       th:href="@{/nhap-hang(q=${q},tuNgay=${tuNgay},denNgay=${denNgay},trangThai=${trangThai},page=0)}">Đầu</a>
+                    <span th:unless="${currentPage > 0}" class="pagination-link is-disabled">Đầu</span>
+                    <a th:if="${currentPage > 0}" class="pagination-link"
+                       th:href="@{/nhap-hang(q=${q},tuNgay=${tuNgay},denNgay=${denNgay},trangThai=${trangThai},page=${currentPage - 1})}">Trước</a>
+                    <span th:unless="${currentPage > 0}" class="pagination-link is-disabled">Trước</span>
+                    <a th:each="pageNumber : ${#numbers.sequence(0, totalPages - 1)}"
+                       th:if="${pageNumber >= currentPage - 2 and pageNumber <= currentPage + 2}"
+                       th:class="${pageNumber == currentPage ? 'pagination-link is-current' : 'pagination-link'}"
+                       th:attr="aria-current=${pageNumber == currentPage ? 'page' : null}"
+                       th:href="@{/nhap-hang(q=${q},tuNgay=${tuNgay},denNgay=${denNgay},trangThai=${trangThai},page=${pageNumber})}"
+                       th:text="${pageNumber + 1}"></a>
+                    <a th:if="${currentPage + 1 < totalPages}" class="pagination-link"
+                       th:href="@{/nhap-hang(q=${q},tuNgay=${tuNgay},denNgay=${denNgay},trangThai=${trangThai},page=${currentPage + 1})}">Sau</a>
+                    <span th:unless="${currentPage + 1 < totalPages}" class="pagination-link is-disabled">Sau</span>
+                    <a th:if="${currentPage + 1 < totalPages}" class="pagination-link"
+                       th:href="@{/nhap-hang(q=${q},tuNgay=${tuNgay},denNgay=${denNgay},trangThai=${trangThai},page=${totalPages - 1})}">Cuối</a>
+                    <span th:unless="${currentPage + 1 < totalPages}" class="pagination-link is-disabled">Cuối</span>
+                </div>
+            </nav>
+        </section>
+    </div>
+</body>
+</html>

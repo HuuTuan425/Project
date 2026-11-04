@@ -114,11 +114,49 @@
                     <label for="reason">Lý do hủy hóa đơn</label>
                     <input id="reason" type="text" name="reason" maxlength="500" required>
                 </div>
-                <button type="submit" class="btn btn-danger"
-                        onclick="return confirm('Hủy hóa đơn này và hoàn lại hàng/điểm thưởng?')">
+                <button type="submit" class="btn btn-danger">
                     Hủy hóa đơn
                 </button>
             </form>
+            <dialog th:if="${(isAdmin or isManager) and !hoaDon.cancelled}"
+                    class="confirmation-dialog" id="cancel-invoice-confirmation"
+                    aria-labelledby="cancel-invoice-confirmation-title"
+                    aria-describedby="cancel-invoice-confirmation-description">
+                <form method="dialog" class="confirmation-dialog-dismiss">
+                    <button type="submit" class="confirmation-close" aria-label="Đóng">×</button>
+                </form>
+                <div class="confirmation-dialog-icon" aria-hidden="true">!</div>
+                <h2 id="cancel-invoice-confirmation-title">Xác nhận hủy hóa đơn?</h2>
+                <p id="cancel-invoice-confirmation-description">
+                    Hàng hóa và điểm thưởng sẽ được hoàn lại. Bạn có chắc chắn muốn tiếp tục?
+                </p>
+                <div class="confirmation-dialog-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-invoice-dismiss">Không, giữ hóa đơn</button>
+                    <button type="button" class="btn btn-danger" id="confirm-invoice-cancellation">Xác nhận hủy</button>
+                </div>
+            </dialog>
+            <script th:if="${(isAdmin or isManager) and !hoaDon.cancelled}">
+                const cancelInvoiceForm = document.querySelector('.invoice-cancel-form');
+                const cancelInvoiceDialog = document.getElementById('cancel-invoice-confirmation');
+                cancelInvoiceForm.addEventListener('submit', (event) => {
+                    if (cancelInvoiceDialog.returnValue !== 'confirm') {
+                        event.preventDefault();
+                        cancelInvoiceDialog.showModal();
+                    }
+                });
+                document.getElementById('cancel-invoice-dismiss').addEventListener('click', () => {
+                    cancelInvoiceDialog.close('cancel');
+                });
+                document.getElementById('confirm-invoice-cancellation').addEventListener('click', () => {
+                    cancelInvoiceDialog.close('confirm');
+                    cancelInvoiceForm.requestSubmit();
+                });
+                cancelInvoiceDialog.addEventListener('close', () => {
+                    if (cancelInvoiceDialog.returnValue === 'confirm') {
+                        cancelInvoiceDialog.returnValue = '';
+                    }
+                });
+            </script>
         </section>
     </div>
 </body>

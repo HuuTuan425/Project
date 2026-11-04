@@ -951,6 +951,13 @@ class ProjectApplicationTests {
 		AppUser manager = appUserRepository.save(new AppUser("test-manager-" + UUID.randomUUID(),
 				passwordEncoder.encode(TEST_PASSWORD), AccountRole.MANAGER));
 		testAccounts.add(manager);
+		mockMvc.perform(get("/hoa-don/{id}", firstInvoice.getMaHoaDon())
+						.session(login(manager.getUsername())))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("cancel-invoice-confirmation")))
+				.andExpect(content().string(containsString("Xác nhận hủy")))
+				.andExpect(content().string(org.hamcrest.Matchers.not(
+						containsString("confirm('Hủy hóa đơn này"))));
 		hoaDonService.cancelInvoice(secondInvoice.getMaHoaDon(), "Kiểm thử hủy hóa đơn", manager.getUsername());
 		assertTrue(hoaDonRepository.findById(secondInvoice.getMaHoaDon()).orElseThrow().isCancelled());
 		assertEquals(2, matHangRepository.findById(product.getMaMatHang()).orElseThrow().getQuantityInStock());

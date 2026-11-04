@@ -6,18 +6,20 @@
         <section>
             <div class="page-heading">
                 <div>
-                    <h1>Phiếu nhập kho</h1>
-                    <p class="list-count" th:text="${'Hiển thị ' + totalOrders + ' phiếu nhập'}"></p>
+                    <h1>Đơn đặt hàng / phiếu nhập kho</h1>
+                    <p class="list-count" th:text="${'Hiển thị ' + totalOrders + ' đơn/phiếu'}"></p>
                 </div>
                 <div class="invoice-actions">
-                    <a th:href="@{/nhap-hang/tao}" class="btn btn-success">＋ Tạo phiếu nhập</a>
+                    <a th:if="${isAdmin or isPurchasing}" th:href="@{/nhap-hang/tao}" class="btn btn-success">
+                        ＋ Tạo đơn đặt hàng
+                    </a>
                 </div>
             </div>
             <p th:if="${successMessage}" class="message success" th:text="${successMessage}"></p>
             <p th:if="${errorMessage}" class="message error" th:text="${errorMessage}"></p>
             <form th:action="@{/nhap-hang}" method="get" class="invoice-filter purchase-order-filter">
                 <div class="invoice-search-field">
-                    <label for="purchase-order-search">Tìm phiếu nhập</label>
+                    <label for="purchase-order-search">Tìm đơn đặt hàng</label>
                     <input id="purchase-order-search" type="search" name="q" th:value="${q}"
                            placeholder="Mã phiếu hoặc tên nhà cung cấp">
                 </div>
@@ -34,14 +36,15 @@
                     <select id="purchase-order-status" name="trangThai">
                         <option value="" th:selected="${trangThai == ''}">Tất cả trạng thái</option>
                         <option value="RECEIVED" th:selected="${trangThai == 'RECEIVED'}">Đã nhận hàng</option>
+                        <option value="PARTIALLY_RECEIVED" th:selected="${trangThai == 'PARTIALLY_RECEIVED'}">Nhận một phần</option>
                         <option value="DRAFT" th:selected="${trangThai == 'DRAFT'}">Chờ nhận hàng</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-primary">Lọc phiếu nhập</button>
+                <button type="submit" class="btn btn-primary">Lọc đơn hàng</button>
             </form>
             <div th:if="${totalOrders == 0}" class="invoice-no-results" role="status" aria-live="polite">
                 <strong th:if="${#strings.isEmpty(q) and tuNgay == null and denNgay == null and #strings.isEmpty(trangThai)}">
-                    Chưa có phiếu nhập nào.
+                    Chưa có đơn đặt hàng nào.
                 </strong>
                 <strong th:if="${not #strings.isEmpty(q)}">
                     Không tìm thấy phiếu nhập phù hợp với từ khóa “<span th:text="${q}"></span>”.
@@ -54,10 +57,11 @@
                 <table class="invoice-history-table align-middle purchase-order-table">
                     <thead>
                         <tr>
-                            <th scope="col" class="text-center">Mã phiếu</th>
+                            <th scope="col" class="text-center">Mã đơn/phiếu</th>
                             <th scope="col">Nhà cung cấp</th>
                             <th scope="col" class="text-center">Ngày tạo</th>
-                            <th scope="col" class="text-center">Ngày nhận</th>
+                            <th scope="col" class="text-center">Dự kiến giao</th>
+                            <th scope="col" class="text-center">Lần nhận gần nhất</th>
                             <th scope="col">Giá trị</th>
                             <th scope="col" class="text-center">Trạng thái</th>
                             <th scope="col" class="text-center">Chi tiết</th>
@@ -68,6 +72,16 @@
                             <td class="text-center" th:text="${po.id}"></td>
                             <td th:text="${po.supplier.name}"></td>
                             <td class="text-center" th:text="${#temporals.format(po.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                            <td class="text-center">
+                                <span th:if="${po.expectedDeliveryDate != null}"
+                                      th:text="${#temporals.format(po.expectedDeliveryDate, 'dd/MM/yyyy')}"></span>
+                                <span th:if="${po.expectedDeliveryDate == null}">-</span>
+                                <strong th:if="${po.expectedDeliveryDate != null
+                                      and po.expectedDeliveryDate.isBefore(today)
+                                      and po.status.name() != 'RECEIVED'}" class="message error">
+                                    Trễ hạn
+                                </strong>
+                            </td>
                             <td class="text-center" th:text="${po.receivedAt != null ? #temporals.format(po.receivedAt, 'dd/MM/yyyy HH:mm') : '-'}"></td>
                             <td th:text="${#numbers.formatDecimal(po.totalCost, 0, 'COMMA', 0, 'POINT') + ' đ'}"></td>
                             <td class="text-center">
@@ -82,12 +96,12 @@
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(purchaseOrders)}">
-                            <td colspan="7" class="invoice-history-empty">Không có dữ liệu để hiển thị.</td>
+                            <td colspan="8" class="invoice-history-empty">Không có đơn đặt hàng phù hợp.</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-            <nav th:if="${totalOrders > 0}" class="pagination-bar" aria-label="Phân trang phiếu nhập">
+            <nav th:if="${totalOrders > 0}" class="pagination-bar" aria-label="Phân trang đơn đặt hàng">
                 <span class="pagination-summary"
                       th:text="${'Hiển thị ' + pageStart + '–' + pageEnd + ' trên ' + totalOrders + ' phiếu · Trang ' + (currentPage + 1) + '/' + totalPages}"></span>
                 <div class="pagination-controls">

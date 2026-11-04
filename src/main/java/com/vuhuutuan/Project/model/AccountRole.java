@@ -4,6 +4,7 @@ public enum AccountRole {
     ADMIN("Quản trị viên"),
     CASHIER("Nhân viên bán hàng"),
     WAREHOUSE("Thủ kho"),
+    PURCHASING("Nhân viên mua hàng"),
     MANAGER("Quản lý cửa hàng"),
     KHAC("Tài khoản khác (không còn phân quyền)");
 

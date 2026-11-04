@@ -31,6 +31,9 @@ public class PurchaseOrderLine {
     @Column(name = "so_luong", nullable = false)
     private Integer quantity;
 
+    @Column(name = "so_luong_da_nhan", nullable = false)
+    private Integer receivedQuantity = 0;
+
     @Column(name = "gia_nhap", nullable = false)
     private Double unitCost;
 
@@ -66,6 +69,14 @@ public class PurchaseOrderLine {
 
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
+    }
+
+    public Integer getReceivedQuantity() {
+        return receivedQuantity;
+    }
+
+    public void setReceivedQuantity(Integer receivedQuantity) {
+        this.receivedQuantity = receivedQuantity;
     }
 
     public Double getUnitCost() {

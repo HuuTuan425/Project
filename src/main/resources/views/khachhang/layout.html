@@ -34,7 +34,7 @@
                 </span>
             </div>
             <nav class="menu-links" aria-label="Điều hướng chính">
-                <a th:if="${isAdmin or isWarehouse}" th:href="@{/mat-hang}"
+                <a th:if="${isAdmin or isWarehouse or isPurchasing}" th:href="@{/mat-hang}"
                    th:classappend="${currentPath == '/mat-hang' or #strings.startsWith(currentPath, '/mat-hang/')} ? 'active' : ''"
                    th:attr="aria-current=${currentPath == '/mat-hang' or #strings.startsWith(currentPath, '/mat-hang/')} ? 'page' : null"><svg class="menu-icon" aria-hidden="true"><use href="#icon-box"></use></svg>Quản lý mặt hàng</a>
                 <a th:if="${isAdmin}" th:href="@{/khach-hang}"
@@ -52,10 +52,10 @@
                 <a th:if="${isAdmin or isManager}" th:href="@{/hoa-don/bao-cao}"
                    th:classappend="${currentPath == '/hoa-don/bao-cao'} ? 'active' : ''"
                    th:attr="aria-current=${currentPath == '/hoa-don/bao-cao'} ? 'page' : null"><svg class="menu-icon" aria-hidden="true"><use href="#icon-chart"></use></svg>Báo cáo doanh thu</a>
-                <a th:if="${isAdmin or isWarehouse or isManager}" th:href="@{/nhap-hang}"
+                <a th:if="${isAdmin or isWarehouse or isPurchasing or isManager}" th:href="@{/nhap-hang}"
                    th:classappend="${(currentPath == '/nhap-hang' or #strings.startsWith(currentPath, '/nhap-hang/')) and currentPath != '/nhap-hang/nha-cung-cap' and not #strings.startsWith(currentPath, '/nhap-hang/nha-cung-cap/')} ? 'active' : ''"
                    th:attr="aria-current=${(currentPath == '/nhap-hang' or #strings.startsWith(currentPath, '/nhap-hang/')) and currentPath != '/nhap-hang/nha-cung-cap' and not #strings.startsWith(currentPath, '/nhap-hang/nha-cung-cap/')} ? 'page' : null"><svg class="menu-icon" aria-hidden="true"><use href="#icon-truck"></use></svg>Nhập kho</a>
-                <a th:if="${isAdmin or isWarehouse or isManager}"
+                <a th:if="${isAdmin or isWarehouse or isPurchasing or isManager}"
                    th:href="@{/nhap-hang/nha-cung-cap}"
                    th:classappend="${currentPath == '/nhap-hang/nha-cung-cap' or #strings.startsWith(currentPath, '/nhap-hang/nha-cung-cap/')} ? 'active' : ''"
                    th:attr="aria-current=${currentPath == '/nhap-hang/nha-cung-cap' or #strings.startsWith(currentPath, '/nhap-hang/nha-cung-cap/')} ? 'page' : null"><svg class="menu-icon" aria-hidden="true"><use href="#icon-building"></use></svg>Nhà cung cấp</a>
@@ -71,6 +71,7 @@
                     <span class="account-role" th:if="${isAdmin}">Quản trị viên</span>
                     <span class="account-role" th:if="${isCashier}">Nhân viên bán hàng</span>
                     <span class="account-role" th:if="${isWarehouse}">Thủ kho</span>
+                    <span class="account-role" th:if="${isPurchasing}">Nhân viên mua hàng</span>
                     <span class="account-role" th:if="${isManager}">Quản lý cửa hàng</span>
                 </div>
                 <form th:action="@{/logout}" method="post">

@@ -1,36 +1,58 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{khachhang/layout :: head('Chi tiết phiếu nhập')}"></head>
+<head th:replace="~{khachhang/layout :: head('Chi tiết đơn đặt hàng')}"></head>
 <body>
     <div th:replace="~{khachhang/layout :: page(~{::section})}">
         <section>
-            <h2>Phiếu nhập <span th:text="${purchaseOrder.id}"></span></h2>
+            <h2>Đơn đặt hàng <span th:text="${purchaseOrder.id}"></span></h2>
             <p>Nhà cung cấp: <strong th:text="${purchaseOrder.supplier.name}"></strong></p>
             <p>Trạng thái: <strong th:text="${purchaseOrder.status.displayName}"></strong></p>
+            <p>Ngày giao dự kiến:
+                <strong th:text="${purchaseOrder.expectedDeliveryDate != null
+                    ? #temporals.format(purchaseOrder.expectedDeliveryDate, 'dd/MM/yyyy') : 'Chưa xác định'}"></strong>
+                <span th:if="${purchaseOrder.expectedDeliveryDate != null
+                    and purchaseOrder.expectedDeliveryDate.isBefore(today)
+                    and purchaseOrder.status.name() != 'RECEIVED'}" class="message error">Nhà cung cấp đang giao trễ.</span>
+            </p>
+            <p>Điều khoản đã thỏa thuận:
+                <strong th:text="${purchaseOrder.paymentTerms != null ? purchaseOrder.paymentTerms : 'Chưa ghi nhận'}"></strong>
+            </p>
             <p th:if="${successMessage}" class="message success" th:text="${successMessage}"></p>
             <p th:if="${errorMessage}" class="message error" th:text="${errorMessage}"></p>
             <table>
-                <thead><tr><th>Mặt hàng</th><th>Số lượng</th><th>Giá nhập</th><th>Thành tiền</th><th>Hạn sử dụng</th></tr></thead>
+                <thead><tr><th>Mặt hàng</th><th>Đặt</th><th>Đã nhận</th><th>Còn thiếu</th>
+                    <th>Giá nhập</th><th>Thành tiền</th><th>Hạn sử dụng</th></tr></thead>
                 <tbody>
                     <tr th:each="line : ${purchaseOrder.lines}">
                         <td th:text="${line.product.tenMatHang}"></td>
                         <td th:text="${line.quantity}"></td>
+                        <td th:text="${line.receivedQuantity}"></td>
+                        <td th:text="${line.quantity - line.receivedQuantity}"></td>
                         <td th:text="${#numbers.formatDecimal(line.unitCost, 0, 'COMMA', 0, 'POINT') + ' đ'}"></td>
                         <td th:text="${#numbers.formatDecimal(line.unitCost * line.quantity, 0, 'COMMA', 0, 'POINT') + ' đ'}"></td>
                         <td th:text="${line.expiryDate != null ? #temporals.format(line.expiryDate, 'dd/MM/yyyy') : 'Không có'}"></td>
                     </tr>
                 </tbody>
             </table>
-            <p>Tổng tiền nhập: <strong th:text="${#numbers.formatDecimal(purchaseOrder.totalCost, 0, 'COMMA', 0, 'POINT') + ' đ'}"></strong></p>
+            <p>Tổng giá trị đặt hàng: <strong th:text="${#numbers.formatDecimal(purchaseOrder.totalCost, 0, 'COMMA', 0, 'POINT') + ' đ'}"></strong></p>
             <div class="purchase-receive-actions">
-                <form th:if="${purchaseOrder.status.name() == 'DRAFT'}"
+                <form th:if="${canReceiveOrders and purchaseOrder.status.name() != 'RECEIVED'}"
                       th:action="@{/nhap-hang/{id}/nhan(id=${purchaseOrder.id})}" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <div class="purchase-line form-group" th:each="line, row : ${purchaseOrder.lines}">
+                        <label th:for="${'received-' + row.index}"
+                               th:text="${line.product.tenMatHang + ' — số lượng thực nhận'}"></label>
+                        <input type="number" min="0"
+                               th:max="${line.quantity - line.receivedQuantity}"
+                               th:value="${line.quantity - line.receivedQuantity}"
+                               th:name="receivedQuantities" th:id="${'received-' + row.index}" required>
+                    </div>
                     <button type="submit" class="btn btn-success">Xác nhận đã nhận hàng</button>
                 </form>
-                <a class="btn btn-secondary" th:href="@{/nhap-hang}">Quay lại phiếu nhập</a>
+                <a class="btn btn-secondary" th:href="@{/nhap-hang}">Quay lại danh sách đơn/phiếu</a>
             </div>
-            <dialog class="confirmation-dialog" id="receive-confirmation"
+            <dialog th:if="${canReceiveOrders and purchaseOrder.status.name() != 'RECEIVED'}"
+                    class="confirmation-dialog" id="receive-confirmation"
                     aria-labelledby="receive-confirmation-title"
                     aria-describedby="receive-confirmation-description">
                 <form method="dialog" class="confirmation-dialog-dismiss">
@@ -39,14 +61,14 @@
                 <div class="confirmation-dialog-icon" aria-hidden="true">!</div>
                 <h2 id="receive-confirmation-title">Xác nhận đã nhận hàng?</h2>
                 <p id="receive-confirmation-description">
-                    Hàng sẽ được cộng vào tồn kho. Phiếu nhập đã xác nhận không thể nhận lại lần nữa.
+                    Chỉ số lượng thực nhận được cộng vào tồn kho. Có thể xác nhận thêm các đợt giao tiếp theo.
                 </p>
                 <div class="confirmation-dialog-actions">
                     <button type="button" class="btn btn-secondary" id="cancel-receive">Kiểm tra lại</button>
                     <button type="button" class="btn btn-success" id="confirm-receive">Đúng, đã nhận hàng</button>
                 </div>
             </dialog>
-            <script th:if="${purchaseOrder.status.name() == 'DRAFT'}">
+            <script th:if="${canReceiveOrders and purchaseOrder.status.name() != 'RECEIVED'}">
                 const receiveForm = document.querySelector('.purchase-receive-actions form');
                 const receiveDialog = document.getElementById('receive-confirmation');
                 receiveForm.addEventListener('submit', (event) => {

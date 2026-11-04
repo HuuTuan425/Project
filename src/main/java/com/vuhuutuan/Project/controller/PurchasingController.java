@@ -4,6 +4,7 @@ import com.vuhuutuan.Project.model.MatHang;
 import com.vuhuutuan.Project.model.PurchaseOrder;
 import com.vuhuutuan.Project.model.PurchaseOrderStatus;
 import com.vuhuutuan.Project.model.Supplier;
+import com.vuhuutuan.Project.model.SupplierProposal;
 import com.vuhuutuan.Project.repository.MatHangRepository;
 import com.vuhuutuan.Project.service.PurchasingService;
 import jakarta.validation.Valid;
@@ -41,9 +42,8 @@ public class PurchasingController {
     }
 
     @GetMapping("/nha-cung-cap")
-    public String suppliers(Model model) {
-        model.addAttribute("suppliers", purchasingService.findSuppliers());
-        model.addAttribute("supplierForm", new SupplierForm());
+    public String suppliers(Model model, Authentication authentication) {
+        populateSupplierPage(model, authentication);
         return "nhaphang/nhacungcap";
     }
 
@@ -51,6 +51,7 @@ public class PurchasingController {
     public String editSupplier(
             @PathVariable Long id,
             Model model,
+            Authentication authentication,
             RedirectAttributes redirectAttributes
     ) {
         try {
@@ -61,7 +62,7 @@ public class PurchasingController {
             form.setPhone(supplier.getPhone());
             form.setEmail(supplier.getEmail());
             form.setAddress(supplier.getAddress());
-            model.addAttribute("suppliers", purchasingService.findSuppliers());
+            populateSupplierPage(model, authentication);
             model.addAttribute("supplierForm", form);
             return "nhaphang/nhacungcap";
         } catch (java.util.NoSuchElementException exception) {
@@ -75,10 +76,11 @@ public class PurchasingController {
             @Valid @ModelAttribute("supplierForm") SupplierForm form,
             BindingResult bindingResult,
             Model model,
+            Authentication authentication,
             RedirectAttributes redirectAttributes
     ) {
         if (bindingResult.hasErrors()) {
-            model.addAttribute("suppliers", purchasingService.findSuppliers());
+            populateSupplierPage(model, authentication);
             return "nhaphang/nhacungcap";
         }
         Supplier supplier = new Supplier();
@@ -100,6 +102,59 @@ public class PurchasingController {
         return "redirect:/nhap-hang/nha-cung-cap";
     }
 
+    @PostMapping("/nha-cung-cap/de-xuat")
+    public String proposeSupplier(
+            @Valid @ModelAttribute("supplierProposalForm") SupplierProposalForm form,
+            BindingResult bindingResult,
+            Model model,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes
+    ) {
+        if (bindingResult.hasErrors()) {
+            populateSupplierPage(model, authentication);
+            return "nhaphang/nhacungcap";
+        }
+        SupplierProposal proposal = new SupplierProposal();
+        proposal.setName(form.getName());
+        proposal.setPhone(form.getPhone());
+        proposal.setEmail(form.getEmail());
+        proposal.setAddress(form.getAddress());
+        purchasingService.createSupplierProposal(proposal, authentication.getName());
+        redirectAttributes.addFlashAttribute(
+                "successMessage", "Đã gửi đề xuất nhà cung cấp để quản trị viên xem xét.");
+        return "redirect:/nhap-hang/nha-cung-cap";
+    }
+
+    @PostMapping("/nha-cung-cap/de-xuat/{id}/duyet")
+    public String approveSupplierProposal(
+            @PathVariable Long id,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            purchasingService.approveSupplierProposal(id, authentication.getName());
+            redirectAttributes.addFlashAttribute("successMessage", "Đã duyệt và thêm nhà cung cấp.");
+        } catch (IllegalStateException | java.util.NoSuchElementException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        }
+        return "redirect:/nhap-hang/nha-cung-cap";
+    }
+
+    @PostMapping("/nha-cung-cap/de-xuat/{id}/tu-choi")
+    public String rejectSupplierProposal(
+            @PathVariable Long id,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            purchasingService.rejectSupplierProposal(id, authentication.getName());
+            redirectAttributes.addFlashAttribute("successMessage", "Đã từ chối đề xuất nhà cung cấp.");
+        } catch (IllegalStateException | java.util.NoSuchElementException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        }
+        return "redirect:/nhap-hang/nha-cung-cap";
+    }
+
     @PostMapping("/nha-cung-cap/{id}/xoa")
     public String deleteSupplier(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
@@ -109,6 +164,41 @@ public class PurchasingController {
             redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
         }
         return "redirect:/nhap-hang/nha-cung-cap";
+    }
+
+    private void populateSupplierPage(Model model, Authentication authentication) {
+        model.addAttribute("suppliers", purchasingService.findSuppliers());
+        if (!model.containsAttribute("supplierForm")) {
+            model.addAttribute("supplierForm", new SupplierForm());
+        }
+        if (!model.containsAttribute("supplierProposalForm")) {
+            model.addAttribute("supplierProposalForm", new SupplierProposalForm());
+        }
+        if (isAdmin(authentication) || isPurchasing(authentication)) {
+            model.addAttribute("supplierProposals", purchasingService.findSupplierProposals());
+        } else if (isWarehouse(authentication)) {
+            model.addAttribute("supplierProposals",
+                    purchasingService.findSupplierProposals(authentication.getName()));
+        } else {
+            model.addAttribute("supplierProposals", List.of());
+        }
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        return hasRole(authentication, "ROLE_ADMIN");
+    }
+
+    private boolean isWarehouse(Authentication authentication) {
+        return hasRole(authentication, "ROLE_WAREHOUSE");
+    }
+
+    private boolean isPurchasing(Authentication authentication) {
+        return hasRole(authentication, "ROLE_PURCHASING");
+    }
+
+    private boolean hasRole(Authentication authentication, String role) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals(role));
     }
 
     @GetMapping
@@ -125,6 +215,7 @@ public class PurchasingController {
         boolean invalidFilter = false;
         if (!statusFilter.isEmpty()
                 && !statusFilter.equals(PurchaseOrderStatus.DRAFT.name())
+                && !statusFilter.equals(PurchaseOrderStatus.PARTIALLY_RECEIVED.name())
                 && !statusFilter.equals(PurchaseOrderStatus.RECEIVED.name())) {
             model.addAttribute("errorMessage", "Trạng thái lọc không hợp lệ.");
             invalidFilter = true;
@@ -188,6 +279,7 @@ public class PurchasingController {
         model.addAttribute("totalOrders", totalOrders);
         model.addAttribute("pageStart", pageStart);
         model.addAttribute("pageEnd", pageEnd);
+        model.addAttribute("today", LocalDate.now());
         return "nhaphang/danhsach";
     }
 
@@ -207,7 +299,9 @@ public class PurchasingController {
     ) {
         try {
             Long creatorId = purchasingService.findAccountId(authentication.getName());
-            var purchaseOrder = purchasingService.createDraft(form.getSupplierId(), creatorId, form.getLines());
+            var purchaseOrder = purchasingService.createDraft(
+                    form.getSupplierId(), creatorId, form.getExpectedDeliveryDate(),
+                    form.getPaymentTerms(), form.getLines());
             redirectAttributes.addFlashAttribute("successMessage",
                     "Đã tạo phiếu nhập ở trạng thái chờ nhận hàng.");
             return "redirect:/nhap-hang/" + purchaseOrder.getId();
@@ -219,9 +313,17 @@ public class PurchasingController {
     }
 
     @GetMapping("/{id}")
-    public String detail(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+    public String detail(
+            @PathVariable Long id,
+            Model model,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes
+    ) {
         try {
             model.addAttribute("purchaseOrder", purchasingService.findPurchaseOrder(id));
+            model.addAttribute("canReceiveOrders", hasRole(authentication, "ROLE_ADMIN")
+                    || hasRole(authentication, "ROLE_WAREHOUSE"));
+            model.addAttribute("today", LocalDate.now());
             return "nhaphang/chitiet";
         } catch (java.util.NoSuchElementException exception) {
             redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
@@ -230,11 +332,17 @@ public class PurchasingController {
     }
 
     @PostMapping("/{id}/nhan")
-    public String receive(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String receive(
+            @PathVariable Long id,
+            @RequestParam(required = false) List<Integer> receivedQuantities,
+            RedirectAttributes redirectAttributes
+    ) {
         try {
-            purchasingService.receive(id);
+            purchasingService.receive(id, receivedQuantities);
             redirectAttributes.addFlashAttribute("successMessage",
-                    "Đã nhận hàng và cập nhật tồn kho theo lô.");
+                    "Đã ghi nhận hàng thực nhận và cập nhật tồn kho theo lô.");
+        } catch (IllegalArgumentException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
         } catch (IllegalStateException | java.util.NoSuchElementException exception) {
             redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
         }
@@ -254,4 +362,5 @@ public class PurchasingController {
         model.addAttribute("suppliers", purchasingService.findSuppliers());
         model.addAttribute("matHangs", products);
     }
+
 }

@@ -89,6 +89,12 @@ public class RetailSchemaMigration implements ApplicationRunner {
             dropUniqueIndex(statement, metadata, catalog, "chi_tiet_hoa_don", "uk_hoa_don_mat_hang");
 
             createPurchasingTables(statement);
+            ensureColumn(statement, metadata, catalog, "phieu_nhap", "ngay_giao_du_kien",
+                    "ALTER TABLE phieu_nhap ADD COLUMN ngay_giao_du_kien DATE NULL");
+            ensureColumn(statement, metadata, catalog, "phieu_nhap", "dieu_khoan_thanh_toan",
+                    "ALTER TABLE phieu_nhap ADD COLUMN dieu_khoan_thanh_toan VARCHAR(500) NULL");
+            ensureColumn(statement, metadata, catalog, "chi_tiet_phieu_nhap", "so_luong_da_nhan",
+                    "ALTER TABLE chi_tiet_phieu_nhap ADD COLUMN so_luong_da_nhan INT NOT NULL DEFAULT 0");
             ensureIndex(statement, metadata, catalog, "lo_hang", "idx_lo_hang_fefo",
                     "CREATE INDEX idx_lo_hang_fefo ON lo_hang (ma_mat_hang, han_su_dung, ma_lo_hang)");
             ensureIndex(statement, metadata, catalog, "hoa_don", "idx_hoa_don_ngay",
@@ -123,14 +129,31 @@ public class RetailSchemaMigration implements ApplicationRunner {
                 )
                 """,
                 """
+                CREATE TABLE IF NOT EXISTS de_xuat_nha_cung_cap (
+                    id BIGINT NOT NULL AUTO_INCREMENT,
+                    ten_nha_cung_cap VARCHAR(150) NOT NULL,
+                    so_dien_thoai VARCHAR(30),
+                    email VARCHAR(150),
+                    dia_chi VARCHAR(255),
+                    nguoi_de_xuat VARCHAR(50) NOT NULL,
+                    thoi_gian_de_xuat DATETIME NOT NULL,
+                    trang_thai VARCHAR(20) NOT NULL,
+                    nguoi_xu_ly VARCHAR(50),
+                    thoi_gian_xu_ly DATETIME,
+                    PRIMARY KEY (id)
+                )
+                """,
+                """
                 CREATE TABLE IF NOT EXISTS phieu_nhap (
                     ma_phieu_nhap BIGINT NOT NULL AUTO_INCREMENT,
                     ma_nha_cung_cap BIGINT NOT NULL,
                     ma_nguoi_tao BIGINT NOT NULL,
                     ngay_tao DATETIME NOT NULL,
                     ngay_nhan DATETIME NULL,
-                    trang_thai VARCHAR(20) NOT NULL,
+                    trang_thai VARCHAR(30) NOT NULL,
                     tong_tien_nhap DECIMAL(18,2) NOT NULL,
+                    ngay_giao_du_kien DATE NULL,
+                    dieu_khoan_thanh_toan VARCHAR(500) NULL,
                     PRIMARY KEY (ma_phieu_nhap),
                     CONSTRAINT fk_phieu_nhap_ncc FOREIGN KEY (ma_nha_cung_cap)
                         REFERENCES nha_cung_cap(ma_nha_cung_cap),
@@ -144,6 +167,7 @@ public class RetailSchemaMigration implements ApplicationRunner {
                     ma_phieu_nhap BIGINT NOT NULL,
                     ma_mat_hang BIGINT NOT NULL,
                     so_luong INT NOT NULL,
+                    so_luong_da_nhan INT NOT NULL DEFAULT 0,
                     gia_nhap DECIMAL(18,2) NOT NULL,
                     ngay_san_xuat DATE NULL,
                     han_su_dung DATE NULL,

@@ -15,6 +15,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,6 +47,12 @@ public class PurchaseOrder {
 
     @Column(name = "tong_tien_nhap", nullable = false)
     private Double totalCost;
+
+    @Column(name = "ngay_giao_du_kien")
+    private LocalDate expectedDeliveryDate;
+
+    @Column(name = "dieu_khoan_thanh_toan", length = 500)
+    private String paymentTerms;
 
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PurchaseOrderLine> lines = new ArrayList<>();
@@ -100,6 +107,22 @@ public class PurchaseOrder {
 
     public void setTotalCost(Double totalCost) {
         this.totalCost = totalCost;
+    }
+
+    public LocalDate getExpectedDeliveryDate() {
+        return expectedDeliveryDate;
+    }
+
+    public void setExpectedDeliveryDate(LocalDate expectedDeliveryDate) {
+        this.expectedDeliveryDate = expectedDeliveryDate;
+    }
+
+    public String getPaymentTerms() {
+        return paymentTerms;
+    }
+
+    public void setPaymentTerms(String paymentTerms) {
+        this.paymentTerms = paymentTerms;
     }
 
     public List<PurchaseOrderLine> getLines() {

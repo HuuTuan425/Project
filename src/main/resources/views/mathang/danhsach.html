@@ -76,7 +76,7 @@
                                             <span aria-hidden="true">🗑️</span> Xóa
                                         </button>
                                     </form>
-                                    <span th:if="${isWarehouse}" class="account-role">Chỉ xem</span>
+                                    <span th:if="${isWarehouse or isPurchasing}" class="account-role">Chỉ xem</span>
                                 </div>
                             </td>
                         </tr>

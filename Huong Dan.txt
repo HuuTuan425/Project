@@ -1,0 +1,123 @@
+# Hướng dẫn sử dụng
+
+## Đăng nhập và vai trò tài khoản
+
+Ứng dụng tự động tạo bảng `tai_khoan` khi khởi động. Trước lần chạy đầu tiên,
+hãy đặt biến môi trường `BOOTSTRAP_ADMIN_USERNAME` và
+`BOOTSTRAP_ADMIN_PASSWORD` để tạo tài khoản quản trị viên ban đầu. Hãy dùng mật
+khẩu riêng, có ít nhất 8 ký tự. Mật khẩu được lưu dưới dạng mã băm BCrypt,
+không lưu dưới dạng văn bản thuần. Tài khoản ban đầu chỉ được tạo nếu tên đăng
+nhập chưa tồn tại.
+
+Trong Windows PowerShell, hãy đặt các biến trong terminal sẽ dùng để khởi động
+ứng dụng:
+
+```powershell
+$env:BOOTSTRAP_ADMIN_USERNAME = "admin"
+$env:BOOTSTRAP_ADMIN_PASSWORD = "choose-a-unique-password"
+.\mvnw.cmd spring-boot:run
+```
+
+Mở `http://localhost:8081/dang-nhap`. Quản trị viên có thể tạo, sửa và khóa tài
+khoản tại `/tai-khoan`. Mỗi tài khoản lưu tên nhân viên, số điện thoại/email
+(không bắt buộc), trạng thái hoạt động, thời điểm tạo và lần đăng nhập thành
+công gần nhất. Tài khoản bị khóa không thể đăng nhập; phiên đang hoạt động sẽ
+bị kết thúc ở yêu cầu tiếp theo. Hồ sơ tài khoản được giữ lại để bảo toàn lịch
+sử hóa đơn và nhập hàng.
+
+Do lược đồ cũ không lưu ngày tạo, các tài khoản hiện có được gán thời điểm di
+chuyển dữ liệu làm ngày tạo. Việc ghi nhận lần đăng nhập gần nhất bắt đầu sau
+bản cập nhật này. Email và số điện thoại chỉ dùng làm thông tin liên hệ; chức
+năng gửi tin nhắn đặt lại mật khẩu chưa được kết nối.
+
+Các vai trò:
+
+* **Quản trị viên (Administrator):** quản lý tài khoản và khách hàng, mặt hàng,
+  nhà cung cấp, hàng tồn kho, nhập hàng, báo cáo và hóa đơn.
+* **Nhân viên bán hàng (CASHIER):** bán hàng tại quầy, tạo khách hàng và chỉ
+  xem hóa đơn/biên nhận của chính mình.
+* **Nhân viên kho (WAREHOUSE):** quản lý mặt hàng, xem danh sách nhà cung cấp,
+  kiểm đếm và xác nhận số lượng thực nhận theo từng dòng hàng. Nhân viên kho có
+  thể gửi đề xuất nhà cung cấp mới; nhân viên mua hàng hoặc quản trị viên xem
+  xét đề xuất đó.
+* **Nhân viên mua hàng (PURCHASING):** quản lý hồ sơ và lịch sử nhà cung cấp,
+  lập/theo dõi đơn đặt hàng, ghi nhận giá nhập, ngày giao dự kiến và điều khoản
+  đã thương lượng. Nhân viên mua hàng tiếp nhận đề xuất nhà cung cấp từ thủ kho.
+* **Quản lý cửa hàng (MANAGER):** xem báo cáo bán hàng, lịch sử hóa đơn và theo
+  dõi phiếu đặt/nhập hàng; có thể hủy hóa đơn theo quyền được cấp.
+
+Tài khoản cũ có vai trò `KHAC` sẽ bị chặn cho đến khi quản trị viên gán một vai
+trò được hỗ trợ. Tài khoản nhân viên cũ có vai trò `NHAN_VIEN` được chuyển sang
+`CASHIER`.
+
+## Mặt hàng và bán hàng
+
+Sau khi đăng nhập, dùng menu để quản lý mặt hàng, lập hóa đơn, xem lịch sử hóa
+đơn và mở báo cáo doanh thu. Báo cáo có thể lọc theo ngày.
+
+Hóa đơn lưu giá bán và giá vốn của lô hàng tại thời điểm tạo hóa đơn. Trước lần
+khởi động đầu tiên sau khi cập nhật, hãy sao lưu cơ sở dữ liệu. Theo yêu cầu,
+số lượng mặt hàng hiện có sẽ được đặt về 0, cột cũ `trang_thai` sẽ bị xóa và
+chỉ mục duy nhất cũ trên hóa đơn/mặt hàng sẽ được thay thế để hỗ trợ bán hàng
+từ nhiều lô. Nhân viên mua hàng lập đơn đặt hàng, ghi ngày giao dự kiến và điều
+khoản đã thương lượng. Thủ kho kiểm đếm, nhập số lượng thực nhận và có thể xác
+nhận nhiều lần nếu nhà cung cấp giao thiếu. Tồn kho chỉ tăng theo số lượng thực
+nhận.
+
+Nhân viên bán hàng có thể bán hàng, tìm mặt hàng trên màn hình bán hàng, thêm
+khách hàng và chỉ truy cập hóa đơn/biên nhận của mình. Quản trị viên và nhân
+viên kho quản lý mặt hàng; nhân viên mua hàng xem mặt hàng/tồn kho để lập đơn.
+Quản trị viên và nhân viên mua hàng tạo đơn đặt hàng; thủ kho xác nhận hàng
+thực nhận. Các lô hàng được bán theo thứ tự hạn sử dụng gần nhất
+trước; lô đã hết hạn không thể bán. Số lượng tồn kho chỉ thay đổi sau khi người
+dùng có quyền xác nhận đã nhận hàng.
+
+Hóa đơn hỗ trợ các phương thức thanh toán tiền mặt, chuyển khoản ngân hàng,
+VietQR, MoMo và ZaloPay dưới dạng thông tin ghi nhận. Các phương thức điện tử
+không gọi đến nhà cung cấp dịch vụ thanh toán; thu ngân phải tự xác minh đã
+nhận tiền trước khi xác nhận hóa đơn. Thanh toán tiền mặt có tính tiền thừa.
+
+Mỗi điểm thưởng giảm 1.000 đồng; khách hàng nhận 1 điểm cho mỗi 10.000 đồng đã
+thanh toán sau khi trừ giảm giá. Báo cáo lợi nhuận chỉ tính các dòng hóa đơn có
+giá vốn được ghi nhận.
+
+Quản lý có thể hủy hóa đơn đã thanh toán và phải nhập lý do. Hóa đơn và thông
+tin kiểm toán vẫn được giữ lại; hệ thống hoàn trả đúng các lô hàng và số lượng
+mặt hàng đã bán, trừ điểm đã tích lũy và trả lại điểm đã sử dụng. Để tránh số
+dư điểm âm, không thể hủy hóa đơn nếu khách hàng đã sử dụng số điểm được tích
+lũy từ hóa đơn đó. Không thể hủy an toàn các hóa đơn cũ không có thông tin lô
+hàng. Hóa đơn đã hủy không được tính vào báo cáo doanh thu/lợi nhuận và biên
+nhận sẽ được đánh dấu đã hủy.
+
+Biên nhận PDF dùng khổ giấy 80 mm và cần cài Arial hoặc Noto Sans trên máy chủ
+ứng dụng để hiển thị tiếng Việt.
+
+### Tài liệu tham khảo
+
+* [Tài liệu chính thức của Apache Maven](https://maven.apache.org/guides/index.html)
+* [Tài liệu tham khảo Maven Plugin của Spring Boot](https://docs.spring.io/spring-boot/4.1.2/maven-plugin)
+* [Tạo ảnh OCI](https://docs.spring.io/spring-boot/4.1.2/maven-plugin/build-image.html)
+* [Spring Web](https://docs.spring.io/spring-boot/4.1.2/reference/web/servlet.html)
+* [Thymeleaf](https://docs.spring.io/spring-boot/4.1.2/reference/web/servlet.html#web.servlet-mvc.thymeleaf)
+* [Spring Data JPA](https://docs.spring.io/spring-boot/4.1.2/reference/data/sql.html#data.sql.jpa-and-spring-data)
+* [Validation](https://docs.spring.io/spring-boot/4.1.2/reference/io/validation.html)
+
+### Hướng dẫn
+
+Các hướng dẫn sau minh họa cụ thể cách sử dụng một số tính năng:
+
+* [Xây dựng dịch vụ web RESTful](https://spring.io/guides/gs/rest-service/)
+* [Phục vụ nội dung web với Spring MVC](https://spring.io/guides/gs/serving-web-content/)
+* [Xây dựng dịch vụ REST với Spring](https://spring.io/guides/tutorials/rest/)
+* [Gửi dữ liệu biểu mẫu](https://spring.io/guides/gs/handling-form-submission/)
+* [Truy cập dữ liệu với JPA](https://spring.io/guides/gs/accessing-data-jpa/)
+* [Xác thực dữ liệu đầu vào](https://spring.io/guides/gs/validating-form-input/)
+* [Kết nối MySQL](https://spring.io/guides/gs/accessing-data-mysql/)
+
+### Ghi đè cấu hình Maven Parent
+
+Theo thiết kế của Maven, một số thành phần được kế thừa từ POM cha sang POM của
+dự án. Phần lớn cấu hình kế thừa phù hợp, nhưng một số mục như `<license>` và
+`<developers>` không cần thiết. Vì vậy, POM của dự án khai báo ghi đè các mục
+này bằng nội dung rỗng. Nếu tự chuyển sang POM cha khác và muốn kế thừa các mục
+đó, hãy xóa những phần ghi đè tương ứng.

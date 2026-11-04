@@ -23,6 +23,11 @@ public class AccountViewAdvice {
         return hasRole(authentication, "ROLE_WAREHOUSE");
     }
 
+    @ModelAttribute("isPurchasing")
+    public boolean isPurchasing(Authentication authentication) {
+        return hasRole(authentication, "ROLE_PURCHASING");
+    }
+
     @ModelAttribute("isManager")
     public boolean isManager(Authentication authentication) {
         return hasRole(authentication, "ROLE_MANAGER");

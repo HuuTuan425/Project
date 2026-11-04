@@ -12,6 +12,7 @@ import com.vuhuutuan.Project.model.ProductBatch;
 import com.vuhuutuan.Project.model.PurchaseOrder;
 import com.vuhuutuan.Project.model.PurchaseOrderStatus;
 import com.vuhuutuan.Project.model.Supplier;
+import com.vuhuutuan.Project.model.SupplierProposal;
 import com.vuhuutuan.Project.controller.InvoiceLineForm;
 import com.vuhuutuan.Project.controller.PurchaseOrderLineForm;
 import com.vuhuutuan.Project.config.InvoicePriceSnapshotMigration;
@@ -23,6 +24,7 @@ import com.vuhuutuan.Project.repository.MatHangRepository;
 import com.vuhuutuan.Project.repository.ProductBatchRepository;
 import com.vuhuutuan.Project.repository.PurchaseOrderRepository;
 import com.vuhuutuan.Project.repository.SupplierRepository;
+import com.vuhuutuan.Project.repository.SupplierProposalRepository;
 import com.vuhuutuan.Project.service.HoaDonService;
 import com.vuhuutuan.Project.service.PurchasingService;
 import com.vuhuutuan.Project.service.ReceiptPdfService;
@@ -97,6 +99,9 @@ class ProjectApplicationTests {
 	private SupplierRepository supplierRepository;
 
 	@Autowired
+	private SupplierProposalRepository supplierProposalRepository;
+
+	@Autowired
 	private ProductBatchRepository productBatchRepository;
 
 	@Autowired
@@ -119,6 +124,7 @@ class ProjectApplicationTests {
 	}
 
 	@Test
+	@Transactional
 	void warehouseAndManagerHaveSeparateAccess() throws Exception {
 		AppUser warehouse = createAccount(AccountRole.WAREHOUSE);
 		MockHttpSession warehouseSession = login(warehouse.getUsername());
@@ -126,6 +132,75 @@ class ProjectApplicationTests {
 				.andExpect(status().isOk());
 		mockMvc.perform(get("/nhap-hang").session(warehouseSession))
 				.andExpect(status().isOk());
+		mockMvc.perform(get("/nhap-hang/tao").session(warehouseSession))
+				.andExpect(status().is3xxRedirection());
+		MvcResult supplierPage = mockMvc.perform(get("/nhap-hang/nha-cung-cap").session(warehouseSession))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("Đề xuất nhà cung cấp mới")))
+				.andExpect(content().string(org.hamcrest.Matchers.not(containsString("Lưu thay đổi"))))
+				.andReturn();
+		Matcher csrfMatcher = Pattern.compile("name=\"_csrf\" value=\"([^\"]+)\"")
+				.matcher(supplierPage.getResponse().getContentAsString());
+		assertTrue(csrfMatcher.find(), "Supplier page must include a CSRF token");
+		String csrfToken = csrfMatcher.group(1);
+		Supplier officialSupplier = new Supplier();
+		officialSupplier.setName("Nhà cung cấp quản trị " + UUID.randomUUID());
+		officialSupplier = supplierRepository.save(officialSupplier);
+		Long officialSupplierId = officialSupplier.getId();
+		mockMvc.perform(get("/nhap-hang/nha-cung-cap/{id}/sua", officialSupplierId)
+						.session(warehouseSession))
+				.andExpect(status().is3xxRedirection());
+		mockMvc.perform(post("/nhap-hang/nha-cung-cap")
+						.session(warehouseSession)
+						.param("id", officialSupplierId.toString())
+						.param("name", "Tên bị thay đổi")
+						.param("_csrf", csrfToken))
+				.andExpect(status().is3xxRedirection());
+		mockMvc.perform(post("/nhap-hang/nha-cung-cap/{id}/xoa", officialSupplierId)
+						.session(warehouseSession)
+						.param("_csrf", csrfToken))
+				.andExpect(status().is3xxRedirection());
+		assertTrue(supplierRepository.existsById(officialSupplierId),
+				"Warehouse must not edit or delete official suppliers");
+		String proposalName = "Nhà cung cấp đề xuất " + UUID.randomUUID();
+		mockMvc.perform(post("/nhap-hang/nha-cung-cap")
+						.session(warehouseSession)
+						.param("name", proposalName)
+						.param("_csrf", csrfToken))
+				.andExpect(status().is3xxRedirection());
+		assertTrue(supplierRepository.findAll().stream().noneMatch(supplier -> supplier.getName().equals(proposalName)),
+				"Warehouse must not directly create official suppliers");
+		mockMvc.perform(post("/nhap-hang/nha-cung-cap/de-xuat")
+						.session(warehouseSession)
+						.param("name", proposalName)
+						.param("phone", "0981234567")
+						.param("email", "proposal@example.com")
+						.param("_csrf", csrfToken))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/nhap-hang/nha-cung-cap"));
+		SupplierProposal proposal = supplierProposalRepository.findAll().stream()
+				.filter(item -> item.getName().equals(proposalName))
+				.findFirst()
+				.orElseThrow();
+		assertEquals("PENDING", proposal.getStatus().name());
+
+		AppUser admin = createAccount(AccountRole.ADMIN);
+		MockHttpSession adminSession = login(admin.getUsername());
+		MvcResult adminSupplierPage = mockMvc.perform(get("/nhap-hang/nha-cung-cap").session(adminSession))
+				.andExpect(status().isOk())
+				.andReturn();
+		Matcher adminCsrfMatcher = Pattern.compile("name=\"_csrf\" value=\"([^\"]+)\"")
+				.matcher(adminSupplierPage.getResponse().getContentAsString());
+		assertTrue(adminCsrfMatcher.find(), "Admin supplier page must include a CSRF token");
+		mockMvc.perform(post("/nhap-hang/nha-cung-cap/de-xuat/{id}/duyet", proposal.getId())
+						.session(adminSession)
+						.param("_csrf", adminCsrfMatcher.group(1)))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/nhap-hang/nha-cung-cap"));
+		assertTrue(supplierRepository.findAll().stream().anyMatch(supplier -> supplier.getName().equals(proposalName)),
+				"Approved proposals should become official suppliers");
+		assertEquals("APPROVED",
+				supplierProposalRepository.findById(proposal.getId()).orElseThrow().getStatus().name());
 		mockMvc.perform(get("/hoa-don/bao-cao").session(warehouseSession))
 				.andExpect(status().is3xxRedirection());
 		mockMvc.perform(get("/tai-khoan").session(warehouseSession))
@@ -243,6 +318,98 @@ class ProjectApplicationTests {
 				.andExpect(status().is3xxRedirection())
 				.andExpect(redirectedUrl("/nhap-hang/nha-cung-cap"));
 		assertTrue(!supplierRepository.existsById(unusedSupplierId));
+	}
+
+	@Test
+	@Transactional
+	void purchasingStaffCanPlaceOrdersAndWarehouseCanReceivePartialDeliveries() throws Exception {
+		AppUser purchasingStaff = createAccount(AccountRole.PURCHASING);
+		MockHttpSession purchasingSession = login(purchasingStaff.getUsername());
+		Supplier supplier = new Supplier();
+		supplier.setName("Nhà cung cấp đặt hàng " + UUID.randomUUID());
+		supplier = supplierRepository.save(supplier);
+
+		MatHang product = new MatHang();
+		product.setTenMatHang("PO-" + UUID.randomUUID().toString().substring(0, 8));
+		product.setLoaiMatHang(LoaiMatHang.THUC_PHAM);
+		product.setGiaBanGoc(20_000.0);
+		product.setQuantityInStock(0);
+		product = matHangRepository.save(product);
+
+		mockMvc.perform(get("/nhap-hang/nha-cung-cap").session(purchasingSession))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("Thêm nhà cung cấp")))
+				.andExpect(content().string(containsString("Đề xuất nhà cung cấp")));
+		mockMvc.perform(get("/mat-hang").session(purchasingSession))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("Chỉ xem")));
+
+		MvcResult orderForm = mockMvc.perform(get("/nhap-hang/tao").session(purchasingSession))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("Ngày giao dự kiến")))
+				.andExpect(content().string(containsString("Điều khoản đã thỏa thuận")))
+				.andReturn();
+		Matcher csrfMatcher = Pattern.compile("name=\"_csrf\" value=\"([^\"]+)\"")
+				.matcher(orderForm.getResponse().getContentAsString());
+		assertTrue(csrfMatcher.find(), "Purchase order form must include a CSRF token");
+
+		LocalDate expectedDeliveryDate = LocalDate.now().plusDays(3);
+		mockMvc.perform(post("/nhap-hang")
+						.session(purchasingSession)
+						.param("supplierId", supplier.getId().toString())
+						.param("expectedDeliveryDate", expectedDeliveryDate.toString())
+						.param("paymentTerms", "Thanh toán trong 30 ngày")
+						.param("lines[0].productId", product.getMaMatHang().toString())
+						.param("lines[0].quantity", "5")
+						.param("lines[0].unitCost", "12000")
+						.param("_csrf", csrfMatcher.group(1)))
+				.andExpect(status().is3xxRedirection());
+		PurchaseOrder purchaseOrder = purchaseOrderRepository.findAll().stream()
+				.filter(order -> order.getCreatedBy().getId().equals(purchasingStaff.getId()))
+				.findFirst()
+				.orElseThrow();
+		assertEquals(expectedDeliveryDate, purchaseOrder.getExpectedDeliveryDate());
+		assertEquals("Thanh toán trong 30 ngày", purchaseOrder.getPaymentTerms());
+
+		mockMvc.perform(get("/nhap-hang/{id}", purchaseOrder.getId()).session(purchasingSession))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("Thanh toán trong 30 ngày")))
+				.andExpect(content().string(org.hamcrest.Matchers.not(containsString("Xác nhận đã nhận hàng"))));
+		mockMvc.perform(post("/nhap-hang/{id}/nhan", purchaseOrder.getId())
+						.session(purchasingSession)
+						.param("receivedQuantities", "5")
+						.param("_csrf", csrfMatcher.group(1)))
+				.andExpect(status().is3xxRedirection());
+		assertEquals(0, matHangRepository.findById(product.getMaMatHang()).orElseThrow().getQuantityInStock());
+
+		AppUser warehouse = createAccount(AccountRole.WAREHOUSE);
+		MockHttpSession warehouseSession = login(warehouse.getUsername());
+		MvcResult warehouseOrderPage = mockMvc.perform(get("/nhap-hang/{id}", purchaseOrder.getId())
+						.session(warehouseSession))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("số lượng thực nhận")))
+				.andReturn();
+		Matcher warehouseCsrfMatcher = Pattern.compile("name=\"_csrf\" value=\"([^\"]+)\"")
+				.matcher(warehouseOrderPage.getResponse().getContentAsString());
+		assertTrue(warehouseCsrfMatcher.find(), "Receiving form must include a CSRF token");
+		mockMvc.perform(post("/nhap-hang/{id}/nhan", purchaseOrder.getId())
+						.session(warehouseSession)
+						.param("receivedQuantities", "2")
+						.param("_csrf", warehouseCsrfMatcher.group(1)))
+				.andExpect(status().is3xxRedirection());
+		PurchaseOrder partlyReceived = purchaseOrderRepository.findById(purchaseOrder.getId()).orElseThrow();
+		assertEquals(PurchaseOrderStatus.PARTIALLY_RECEIVED, partlyReceived.getStatus());
+		assertEquals(2, matHangRepository.findById(product.getMaMatHang()).orElseThrow().getQuantityInStock());
+		assertEquals(2, partlyReceived.getLines().getFirst().getReceivedQuantity());
+
+		mockMvc.perform(post("/nhap-hang/{id}/nhan", purchaseOrder.getId())
+						.session(warehouseSession)
+						.param("receivedQuantities", "3")
+						.param("_csrf", warehouseCsrfMatcher.group(1)))
+				.andExpect(status().is3xxRedirection());
+		PurchaseOrder fullyReceived = purchaseOrderRepository.findById(purchaseOrder.getId()).orElseThrow();
+		assertEquals(PurchaseOrderStatus.RECEIVED, fullyReceived.getStatus());
+		assertEquals(5, matHangRepository.findById(product.getMaMatHang()).orElseThrow().getQuantityInStock());
 	}
 
 	@Test
@@ -863,6 +1030,7 @@ class ProjectApplicationTests {
 		AccountRole role = appUserRepository.findByUsernameIgnoreCase(username).orElseThrow().getRole();
 		String destination = switch (role) {
 			case WAREHOUSE -> "/nhap-hang";
+			case PURCHASING -> "/nhap-hang";
 			case MANAGER -> "/hoa-don/bao-cao";
 			default -> "/hoa-don/lap";
 		};

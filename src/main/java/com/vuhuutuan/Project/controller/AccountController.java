@@ -167,7 +167,8 @@ public class AccountController {
     }
 
     private List<AccountRole> availableRoles() {
-        return List.of(AccountRole.ADMIN, AccountRole.CASHIER, AccountRole.WAREHOUSE, AccountRole.MANAGER);
+        return List.of(AccountRole.ADMIN, AccountRole.CASHIER, AccountRole.WAREHOUSE,
+                AccountRole.PURCHASING, AccountRole.MANAGER);
     }
 
     private void addAccountList(Model model, String q, AccountRole role, Boolean enabled, int page) {

@@ -6,10 +6,10 @@
         <section>
             <div class="page-heading purchase-page-heading">
                 <div>
-                    <h1>Tạo phiếu nhập kho</h1>
+                    <h1>Lập đơn đặt hàng</h1>
                 </div>
             </div>
-            <p>Phiếu nhập ở trạng thái chờ nhận sẽ chưa làm tăng tồn kho.</p>
+            <p>Đơn chờ giao chưa làm tăng tồn kho. Thủ kho sẽ ghi nhận số lượng thực nhận.</p>
             <p th:if="${errorMessage}" class="message error" th:text="${errorMessage}"></p>
             <p th:if="${#lists.isEmpty(suppliers)}" class="message error">
                 Chưa có nhà cung cấp. <a th:href="@{/nhap-hang/nha-cung-cap}">Thêm nhà cung cấp</a> trước.
@@ -22,6 +22,15 @@
                         <option value="">-- Chọn nhà cung cấp --</option>
                         <option th:each="supplier : ${suppliers}" th:value="${supplier.id}" th:text="${supplier.name}"></option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label for="expectedDeliveryDate">Ngày giao dự kiến</label>
+                    <input id="expectedDeliveryDate" type="date" th:field="*{expectedDeliveryDate}">
+                </div>
+                <div class="form-group">
+                    <label for="paymentTerms">Điều khoản đã thỏa thuận</label>
+                    <textarea id="paymentTerms" th:field="*{paymentTerms}" maxlength="500"
+                              placeholder="Ví dụ: thanh toán trong 30 ngày; giao hàng tại kho trung tâm"></textarea>
                 </div>
                 <div id="purchase-lines">
                     <div class="purchase-line form-group" th:each="line, row : *{lines}">
@@ -42,7 +51,7 @@
                 </div>
                 <div class="purchase-form-actions">
                     <button id="add-purchase-line" type="button" class="btn btn-primary">+ Thêm mặt hàng</button>
-                    <button type="submit" class="btn btn-success">Tạo phiếu chờ nhận</button>
+                    <button type="submit" class="btn btn-success">Tạo đơn đặt hàng</button>
                 </div>
             </form>
             <template id="purchase-line-template">

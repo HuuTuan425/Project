@@ -14,8 +14,6 @@ import org.springframework.stereotype.Repository;
 public interface HoaDonRepository extends JpaRepository<HoaDon, Long> {
     java.util.List<HoaDon> findAllByOrderByThoiGianThanhToanDesc();
 
-    boolean existsByThuNgan_IdOrCancelledBy_Id(Long cashierId, Long cancelledById);
-
     @Query(
             value = """
                     select h from HoaDon h left join h.khachHang k

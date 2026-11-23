@@ -45,6 +45,9 @@ public class AppUser {
     @Column(name = "dang_nhap_lan_cuoi")
     private LocalDateTime lastLoginAt;
 
+    @Column(name = "da_xoa_luc")
+    private LocalDateTime deletedAt;
+
     protected AppUser() {
     }
 
@@ -65,6 +68,10 @@ public class AppUser {
 
     public String getPasswordHash() {
         return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 
     public AccountRole getRole() {
@@ -117,5 +124,17 @@ public class AppUser {
 
     public void setLastLoginAt(LocalDateTime lastLoginAt) {
         this.lastLoginAt = lastLoginAt;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
     }
 }

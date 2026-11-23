@@ -22,6 +22,7 @@ import com.vuhuutuan.Project.repository.HoaDonRepository;
 import com.vuhuutuan.Project.repository.KhachHangRepository;
 import com.vuhuutuan.Project.repository.MatHangRepository;
 import com.vuhuutuan.Project.repository.ProductBatchRepository;
+import com.vuhuutuan.Project.repository.PasswordResetTokenRepository;
 import com.vuhuutuan.Project.repository.PurchaseOrderRepository;
 import com.vuhuutuan.Project.repository.SupplierRepository;
 import com.vuhuutuan.Project.repository.SupplierProposalRepository;
@@ -35,11 +36,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.boot.DefaultApplicationArguments;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -54,11 +58,16 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentCaptor.forClass;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -73,6 +82,12 @@ class ProjectApplicationTests {
 
 	@Autowired
 	private AppUserRepository appUserRepository;
+
+	@Autowired
+	private PasswordResetTokenRepository passwordResetTokenRepository;
+
+	@MockitoBean
+	private JavaMailSender mailSender;
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
@@ -423,7 +438,41 @@ class ProjectApplicationTests {
 	}
 
 	@Test
-	void administratorsCanDeleteUnusedAccountsButCannotDeleteAccountsWithHistoryOrSelf() throws Exception {
+	void legacyInvoicesWithoutCashierRemainAfterAccountSoftDeletion() {
+		AppUser account = createAccount(AccountRole.CASHIER);
+		KhachHang customer = new KhachHang();
+		customer.setHoTen("Khách hóa đơn cũ");
+		customer.setSoCMND(Long.toString(Math.abs(UUID.randomUUID().getLeastSignificantBits()
+				% 1_000_000_000_000L)));
+		customer.setLoaiKhachHang(LoaiKhachHang.MUA_LE);
+		customer.setDiemThuong(0);
+		khachHangRepository.save(customer);
+		HoaDon legacyInvoice = new HoaDon();
+		legacyInvoice.setKhachHang(customer);
+		legacyInvoice.setThoiGianThanhToan(LocalDateTime.now());
+		legacyInvoice.setTongTien(1.0);
+		legacyInvoice.setDiemThuongCong(0);
+		legacyInvoice.setDiemThuongDung(0);
+		legacyInvoice.setPhuongThucThanhToan(PaymentMethod.TIEN_MAT);
+		hoaDonRepository.saveAndFlush(legacyInvoice);
+
+		try {
+			accountService.deleteAccount(account.getId(), "admin");
+			AppUser softDeleted = appUserRepository.findById(account.getId()).orElseThrow();
+			assertTrue(softDeleted.isDeleted());
+			assertTrue(!softDeleted.isEnabled());
+			assertTrue(hoaDonRepository.existsById(legacyInvoice.getMaHoaDon()));
+			assertEquals(customer.getMaKhachHang(),
+					hoaDonRepository.findById(legacyInvoice.getMaHoaDon()).orElseThrow()
+							.getKhachHang().getMaKhachHang());
+		} finally {
+			hoaDonRepository.delete(legacyInvoice);
+			khachHangRepository.delete(customer);
+		}
+	}
+
+	@Test
+	void administratorsCanSoftDeleteAccountsWithoutRemovingTheirHistoryOrDeletingThemselves() throws Exception {
 		AppUser admin = createAccount(AccountRole.ADMIN);
 		MockHttpSession session = login(admin.getUsername());
 		MvcResult accountPage = mockMvc.perform(get("/tai-khoan").session(session))
@@ -466,20 +515,42 @@ class ProjectApplicationTests {
 						.session(session)
 						.param("_csrf", csrfToken))
 				.andExpect(status().is3xxRedirection())
-				.andExpect(flash().attributeExists("errorMessage"));
-		assertTrue(appUserRepository.existsById(employee.getId()),
-				"Accounts referenced by purchase-order history must not be deleted");
+				.andExpect(redirectedUrl("/tai-khoan"))
+				.andExpect(flash().attribute("successMessage",
+						"Đã chuyển tài khoản sang trạng thái đã xóa; lịch sử vẫn được giữ."));
+		AppUser softDeletedEmployee = appUserRepository.findById(employee.getId()).orElseThrow();
+		assertTrue(softDeletedEmployee.isDeleted());
+		assertTrue(!softDeletedEmployee.isEnabled());
+		assertTrue(purchaseOrderRepository.existsById(purchaseOrderId),
+				"Purchase-order history must remain after account soft deletion");
+
+		mockMvc.perform(get("/tai-khoan")
+						.session(session)
+						.param("q", employee.getUsername()))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.not(
+						containsString("<td>" + employee.getUsername() + "</td>"))));
+		mockMvc.perform(get("/tai-khoan")
+						.session(session)
+						.param("deleted", "true")
+						.param("q", employee.getUsername()))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("<td>" + employee.getUsername() + "</td>")))
+				.andExpect(content().string(containsString("Đã xóa")));
 
 		purchaseOrderRepository.deleteById(purchaseOrderId);
 		supplierRepository.deleteById(supplierId);
-		mockMvc.perform(post("/tai-khoan/{id}/xoa", employee.getId())
-						.session(session)
-						.param("_csrf", csrfToken))
+	}
+
+	@Test
+	void softDeletingAnAccountImmediatelyEndsItsExistingSession() throws Exception {
+		AppUser employee = createAccount(AccountRole.CASHIER);
+		MockHttpSession session = login(employee.getUsername());
+		accountService.deleteAccount(employee.getId(), "admin");
+
+		mockMvc.perform(get("/hoa-don/lap").session(session))
 				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/tai-khoan"))
-				.andExpect(flash().attribute("successMessage", "Đã xóa tài khoản."));
-		assertTrue(!appUserRepository.existsById(employee.getId()));
-		testAccounts.remove(employee);
+				.andExpect(redirectedUrl("/dang-nhap?deleted"));
 	}
 
 	@Test
@@ -839,6 +910,154 @@ class ProjectApplicationTests {
 				.andExpect(status().is3xxRedirection());
 		mockMvc.perform(get("/hoa-don/bao-cao").session(session))
 				.andExpect(status().is3xxRedirection());
+	}
+
+	@Test
+	void employeeCanResetPasswordWithSingleUseEmailLink() throws Exception {
+		AppUser employee = createAccount(AccountRole.CASHIER);
+		employee.setEmail("reset-" + UUID.randomUUID() + "@example.com");
+		appUserRepository.save(employee);
+		MockHttpSession existingLoginSession = login(employee.getUsername());
+
+		MvcResult requestPage = mockMvc.perform(get("/quen-mat-khau"))
+				.andExpect(status().isOk())
+				.andExpect(view().name("quenmatkhau"))
+				.andReturn();
+		Matcher requestCsrf = Pattern.compile("name=\"_csrf\" value=\"([^\"]+)\"")
+				.matcher(requestPage.getResponse().getContentAsString());
+		assertTrue(requestCsrf.find(), "Password reset request form must include a CSRF token");
+		MockHttpSession session = (MockHttpSession) requestPage.getRequest().getSession(false);
+
+		mockMvc.perform(post("/quen-mat-khau")
+						.session(session)
+						.param("email", employee.getEmail())
+						.param("_csrf", requestCsrf.group(1)))
+				.andExpect(status().isOk())
+				.andExpect(model().attribute("requestSubmitted", true));
+
+		var messageCaptor = forClass(SimpleMailMessage.class);
+		verify(mailSender).send(messageCaptor.capture());
+		assertEquals(employee.getEmail(), messageCaptor.getValue().getTo()[0]);
+		Matcher tokenMatcher = Pattern.compile("token=([A-Za-z0-9_-]+)")
+				.matcher(messageCaptor.getValue().getText());
+		assertTrue(tokenMatcher.find(), "Reset email must contain a reset token");
+		String token = tokenMatcher.group(1);
+
+		MvcResult resetPage = mockMvc.perform(get("/dat-lai-mat-khau")
+						.session(session)
+						.param("token", token))
+				.andExpect(status().isOk())
+				.andExpect(view().name("datlaimatkhau"))
+				.andReturn();
+		Matcher resetCsrf = Pattern.compile("name=\"_csrf\" value=\"([^\"]+)\"")
+				.matcher(resetPage.getResponse().getContentAsString());
+		assertTrue(resetCsrf.find(), "Password reset form must include a CSRF token");
+
+		mockMvc.perform(post("/dat-lai-mat-khau")
+						.session(session)
+						.param("token", token)
+						.param("password", "New-strong-password-123")
+						.param("confirmPassword", "New-strong-password-123")
+						.param("_csrf", resetCsrf.group(1)))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/dang-nhap"));
+		AppUser resetAccount = appUserRepository.findById(employee.getId()).orElseThrow();
+		assertTrue(passwordEncoder.matches("New-strong-password-123", resetAccount.getPasswordHash()));
+		assertTrue(passwordResetTokenRepository.findById(employee.getId()).isEmpty());
+		mockMvc.perform(get("/hoa-don/lap").session(existingLoginSession))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/dang-nhap?passwordChanged"));
+
+		mockMvc.perform(post("/dat-lai-mat-khau")
+						.session(session)
+						.param("token", token)
+						.param("password", "Another-strong-password-123")
+						.param("confirmPassword", "Another-strong-password-123")
+						.param("_csrf", resetCsrf.group(1)))
+				.andExpect(status().isOk())
+				.andExpect(model().attributeExists("resetError"));
+		assertTrue(passwordEncoder.matches("New-strong-password-123",
+				appUserRepository.findById(employee.getId()).orElseThrow().getPasswordHash()));
+	}
+
+	@Test
+	void administratorCanSendResetLinkForAnAccount() throws Exception {
+		AppUser admin = createAccount(AccountRole.ADMIN);
+		AppUser employee = createAccount(AccountRole.CASHIER);
+		employee.setEmail("admin-reset-" + UUID.randomUUID() + "@example.com");
+		appUserRepository.save(employee);
+		MockHttpSession session = login(admin.getUsername());
+
+		MvcResult accountPage = mockMvc.perform(get("/tai-khoan").session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		Matcher csrfMatcher = Pattern.compile("name=\"_csrf\" value=\"([^\"]+)\"")
+				.matcher(accountPage.getResponse().getContentAsString());
+		assertTrue(csrfMatcher.find(), "Account management form must include a CSRF token");
+
+		mockMvc.perform(post("/tai-khoan/{id}/dat-lai-mat-khau", employee.getId())
+						.session(session)
+						.param("_csrf", csrfMatcher.group(1)))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(flash().attribute("successMessage",
+						"Đã gửi liên kết đặt lại mật khẩu đến email của tài khoản."));
+		var messageCaptor = forClass(SimpleMailMessage.class);
+		verify(mailSender).send(messageCaptor.capture());
+		assertEquals(employee.getEmail(), messageCaptor.getValue().getTo()[0]);
+	}
+
+	@Test
+	void passwordResetRequestDoesNotShowServerErrorWhenMailIsUnavailable() throws Exception {
+		AppUser employee = createAccount(AccountRole.CASHIER);
+		employee.setEmail("unavailable-mail-" + UUID.randomUUID() + "@example.com");
+		appUserRepository.save(employee);
+		doThrow(new IllegalStateException("SMTP host is not configured"))
+				.when(mailSender).send(org.mockito.ArgumentMatchers.any(SimpleMailMessage.class));
+
+		MvcResult requestPage = mockMvc.perform(get("/quen-mat-khau"))
+				.andExpect(status().isOk())
+				.andReturn();
+		Matcher csrfMatcher = Pattern.compile("name=\"_csrf\" value=\"([^\"]+)\"")
+				.matcher(requestPage.getResponse().getContentAsString());
+		assertTrue(csrfMatcher.find(), "Password reset request form must include a CSRF token");
+
+		mockMvc.perform(post("/quen-mat-khau")
+						.session((MockHttpSession) requestPage.getRequest().getSession(false))
+						.param("email", employee.getEmail())
+						.param("_csrf", csrfMatcher.group(1)))
+				.andExpect(status().isOk())
+				.andExpect(view().name("quenmatkhau"))
+				.andExpect(model().attribute("requestSubmitted", true));
+		assertTrue(passwordResetTokenRepository.findById(employee.getId()).isEmpty());
+	}
+
+	@Test
+	void passwordResetRequestDoesNotFailWhenEmailBelongsToMultipleAccounts() throws Exception {
+		String sharedEmail = "shared-reset-" + UUID.randomUUID() + "@example.com";
+		AppUser firstAccount = createAccount(AccountRole.CASHIER);
+		firstAccount.setEmail(sharedEmail);
+		appUserRepository.save(firstAccount);
+		AppUser secondAccount = createAccount(AccountRole.WAREHOUSE);
+		secondAccount.setEmail(sharedEmail);
+		appUserRepository.save(secondAccount);
+
+		MvcResult requestPage = mockMvc.perform(get("/quen-mat-khau"))
+				.andExpect(status().isOk())
+				.andReturn();
+		Matcher csrfMatcher = Pattern.compile("name=\"_csrf\" value=\"([^\"]+)\"")
+				.matcher(requestPage.getResponse().getContentAsString());
+		assertTrue(csrfMatcher.find(), "Password reset request form must include a CSRF token");
+
+		mockMvc.perform(post("/quen-mat-khau")
+						.session((MockHttpSession) requestPage.getRequest().getSession(false))
+						.param("email", sharedEmail)
+						.param("_csrf", csrfMatcher.group(1)))
+				.andExpect(status().isOk())
+				.andExpect(view().name("quenmatkhau"))
+				.andExpect(model().attribute("requestSubmitted", true));
+		verify(mailSender, never()).send(org.mockito.ArgumentMatchers.any(SimpleMailMessage.class));
+		assertTrue(passwordResetTokenRepository.findById(firstAccount.getId()).isEmpty());
+		assertTrue(passwordResetTokenRepository.findById(secondAccount.getId()).isEmpty());
 	}
 
 	@Test

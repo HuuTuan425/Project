@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>Đặt lại mật khẩu</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body class="auth-page auth-reset-page">
+    <main class="auth-container">
+        <section class="auth-content">
+            <div class="auth-heading">
+                <span class="auth-eyebrow">BẢO MẬT TÀI KHOẢN</span>
+                <h1>Đặt lại mật khẩu</h1>
+                <p>Chọn mật khẩu mới có ít nhất 8 ký tự.</p>
+            </div>
+            <p th:if="${resetError}" class="message error" th:text="${resetError}" role="alert"></p>
+            <form th:action="@{/dat-lai-mat-khau}" th:object="${resetForm}" method="post" class="auth-form">
+                <input type="hidden" th:field="*{token}">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <small class="field-error" th:errors="*{token}"></small>
+                <div class="form-group">
+                    <label for="password">Mật khẩu mới</label>
+                    <div class="auth-input-wrap">
+                        <input id="password" type="password" th:field="*{password}"
+                               autocomplete="new-password" minlength="8" maxlength="64" required autofocus>
+                    </div>
+                    <small class="field-error" th:errors="*{password}"></small>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Xác nhận mật khẩu mới</label>
+                    <div class="auth-input-wrap">
+                        <input id="confirmPassword" type="password" th:field="*{confirmPassword}"
+                               autocomplete="new-password" minlength="8" maxlength="64" required>
+                    </div>
+                    <small class="field-error" th:errors="*{confirmPassword}"></small>
+                </div>
+                <button type="submit" class="btn btn-primary auth-submit">Lưu mật khẩu mới</button>
+            </form>
+            <p class="auth-footer"><a th:href="@{/dang-nhap}">Quay lại đăng nhập</a></p>
+        </section>
+    </main>
+</body>
+</html>

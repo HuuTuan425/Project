@@ -411,6 +411,12 @@ body.auth-page {
     box-shadow: 0 28px 80px rgb(22 27 66 / 28%);
 }
 
+.auth-reset-page .auth-container {
+    width: min(520px, 100%);
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .auth-brand {
     display: flex;
     flex-direction: column;

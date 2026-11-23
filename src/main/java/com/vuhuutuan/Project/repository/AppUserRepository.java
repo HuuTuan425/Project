@@ -14,9 +14,11 @@ import java.util.Optional;
 public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     Optional<AppUser> findByUsernameIgnoreCase(String username);
 
+    List<AppUser> findAllByEmailIgnoreCase(String email);
+
     boolean existsByUsernameIgnoreCase(String username);
 
-    List<AppUser> findAllByOrderByUsernameAsc();
+    List<AppUser> findAllByDeletedAtIsNullOrderByUsernameAsc();
 
     @Query(
             value = """
@@ -28,6 +30,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
                         or lower(coalesce(u.email, '')) like :search)
                     and (:role is null or u.role = :role)
                     and (:enabled is null or u.enabled = :enabled)
+                    and ((:deleted = true and u.deletedAt is not null)
+                        or (:deleted = false and u.deletedAt is null))
                     """,
             countQuery = """
                     select count(u) from AppUser u
@@ -38,12 +42,15 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
                         or lower(coalesce(u.email, '')) like :search)
                     and (:role is null or u.role = :role)
                     and (:enabled is null or u.enabled = :enabled)
+                    and ((:deleted = true and u.deletedAt is not null)
+                        or (:deleted = false and u.deletedAt is null))
                     """
     )
     Page<AppUser> searchAccounts(
             @Param("search") String search,
             @Param("role") AccountRole role,
             @Param("enabled") Boolean enabled,
+            @Param("deleted") boolean deleted,
             Pageable pageable
     );
 

@@ -3,8 +3,6 @@ package com.vuhuutuan.Project.service;
 import com.vuhuutuan.Project.model.AccountRole;
 import com.vuhuutuan.Project.model.AppUser;
 import com.vuhuutuan.Project.repository.AppUserRepository;
-import com.vuhuutuan.Project.repository.HoaDonRepository;
-import com.vuhuutuan.Project.repository.PurchaseOrderRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,19 +17,13 @@ import java.util.NoSuchElementException;
 @Service
 public class AccountService {
     private final AppUserRepository appUserRepository;
-    private final HoaDonRepository hoaDonRepository;
-    private final PurchaseOrderRepository purchaseOrderRepository;
     private final PasswordEncoder passwordEncoder;
 
     public AccountService(
             AppUserRepository appUserRepository,
-            HoaDonRepository hoaDonRepository,
-            PurchaseOrderRepository purchaseOrderRepository,
             PasswordEncoder passwordEncoder
     ) {
         this.appUserRepository = appUserRepository;
-        this.hoaDonRepository = hoaDonRepository;
-        this.purchaseOrderRepository = purchaseOrderRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -40,16 +32,17 @@ public class AccountService {
     }
 
     public List<AppUser> findAll() {
-        return appUserRepository.findAllByOrderByUsernameAsc();
+        return appUserRepository.findAllByDeletedAtIsNullOrderByUsernameAsc();
     }
 
     public Page<AppUser> searchAccounts(
             String search,
             AccountRole role,
             Boolean enabled,
+            boolean deleted,
             Pageable pageable
     ) {
-        return appUserRepository.searchAccounts(search, role, enabled, pageable);
+        return appUserRepository.searchAccounts(search, role, enabled, deleted, pageable);
     }
 
     public AppUser findById(Long id) {
@@ -94,6 +87,9 @@ public class AccountService {
     public void setEnabled(Long id, boolean enabled, String actingUsername) {
         AppUser account = appUserRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Không tìm thấy tài khoản."));
+        if (account.isDeleted()) {
+            throw new IllegalArgumentException("Không thể thay đổi trạng thái tài khoản đã xóa.");
+        }
         if (!enabled && account.getUsername().equalsIgnoreCase(actingUsername)) {
             throw new IllegalArgumentException("Bạn không thể tự khóa tài khoản đang đăng nhập.");
         }
@@ -113,17 +109,16 @@ public class AccountService {
         if (account.getUsername().equalsIgnoreCase(actingUsername)) {
             throw new IllegalArgumentException("Bạn không thể xóa tài khoản đang đăng nhập.");
         }
+        if (account.isDeleted()) {
+            throw new IllegalArgumentException("Tài khoản đã được xóa trước đó.");
+        }
         if (account.isEnabled() && account.getRole() == AccountRole.ADMIN
                 && appUserRepository.countByRoleAndEnabledTrue(AccountRole.ADMIN) <= 1) {
             throw new IllegalArgumentException("Không thể xóa tài khoản quản trị viên đang hoạt động cuối cùng.");
         }
-        if (hoaDonRepository.existsByThuNgan_IdOrCancelledBy_Id(id, id)
-                || purchaseOrderRepository.existsByCreatedBy_Id(id)) {
-            throw new IllegalArgumentException(
-                    "Tài khoản đã có lịch sử hóa đơn hoặc phiếu nhập nên không thể xóa. Hãy khóa tài khoản để giữ lịch sử."
-            );
-        }
-        appUserRepository.delete(account);
+        account.setEnabled(false);
+        account.setDeletedAt(LocalDateTime.now());
+        appUserRepository.save(account);
     }
 
     @Transactional
@@ -137,6 +132,9 @@ public class AccountService {
     ) {
         AppUser account = appUserRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Không tìm thấy tài khoản."));
+        if (account.isDeleted()) {
+            throw new IllegalArgumentException("Không thể sửa tài khoản đã xóa.");
+        }
         if (role == null || role == AccountRole.KHAC) {
             throw new IllegalArgumentException("Loại tài khoản không hợp lệ.");
         }
@@ -155,11 +153,12 @@ public class AccountService {
     }
 
     @Transactional
-    public void recordLogin(String username) {
+    public String recordLogin(String username) {
         AppUser account = appUserRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new NoSuchElementException("Không tìm thấy tài khoản đăng nhập."));
         account.setLastLoginAt(LocalDateTime.now());
         appUserRepository.save(account);
+        return account.getPasswordHash();
     }
 
     private String normalizeOptional(String value) {

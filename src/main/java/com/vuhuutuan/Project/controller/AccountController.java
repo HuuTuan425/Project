@@ -3,6 +3,7 @@ package com.vuhuutuan.Project.controller;
 import com.vuhuutuan.Project.model.AccountRole;
 import com.vuhuutuan.Project.model.AppUser;
 import com.vuhuutuan.Project.service.AccountService;
+import com.vuhuutuan.Project.service.PasswordResetService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,9 +27,11 @@ public class AccountController {
     private static final int ACCOUNT_PAGE_SIZE = 5;
 
     private final AccountService accountService;
+    private final PasswordResetService passwordResetService;
 
-    public AccountController(AccountService accountService) {
+    public AccountController(AccountService accountService, PasswordResetService passwordResetService) {
         this.accountService = accountService;
+        this.passwordResetService = passwordResetService;
     }
 
     @GetMapping("/tai-khoan")
@@ -36,10 +39,11 @@ public class AccountController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) AccountRole role,
             @RequestParam(required = false) Boolean enabled,
+            @RequestParam(defaultValue = "false") boolean deleted,
             @RequestParam(defaultValue = "0") int page,
             Model model
     ) {
-        addAccountList(model, q, role, enabled, page);
+        addAccountList(model, q, role, enabled, deleted, page);
         model.addAttribute("newAccount", new CreateAccountForm());
         model.addAttribute("roles", availableRoles());
         return "taikhoan/danhsach";
@@ -53,6 +57,10 @@ public class AccountController {
         } catch (java.util.NoSuchElementException exception) {
             redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy tài khoản.");
             return "redirect:/tai-khoan";
+        }
+        if (account.isDeleted()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Không thể sửa tài khoản đã xóa.");
+            return "redirect:/tai-khoan?deleted=true";
         }
         UpdateAccountForm form = new UpdateAccountForm();
         form.setFullName(account.getFullName());
@@ -121,7 +129,7 @@ public class AccountController {
         }
 
         if (bindingResult.hasErrors()) {
-            addAccountList(model, null, null, null, 0);
+            addAccountList(model, null, null, null, false, 0);
             model.addAttribute("roles", availableRoles());
             return "taikhoan/danhsach";
         }
@@ -151,6 +159,21 @@ public class AccountController {
         return "redirect:/tai-khoan";
     }
 
+    @PostMapping("/tai-khoan/{id}/dat-lai-mat-khau")
+    public String sendPasswordReset(
+            @PathVariable Long id,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            passwordResetService.sendResetLinkToAccount(id);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Đã gửi liên kết đặt lại mật khẩu đến email của tài khoản.");
+        } catch (IllegalArgumentException | java.util.NoSuchElementException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        }
+        return "redirect:/tai-khoan";
+    }
+
     @PostMapping("/tai-khoan/{id}/xoa")
     public String deleteAccount(
             @PathVariable Long id,
@@ -159,7 +182,8 @@ public class AccountController {
     ) {
         try {
             accountService.deleteAccount(id, authentication.getName());
-            redirectAttributes.addFlashAttribute("successMessage", "Đã xóa tài khoản.");
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Đã chuyển tài khoản sang trạng thái đã xóa; lịch sử vẫn được giữ.");
         } catch (IllegalArgumentException | java.util.NoSuchElementException exception) {
             redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
         }
@@ -171,7 +195,14 @@ public class AccountController {
                 AccountRole.PURCHASING, AccountRole.MANAGER);
     }
 
-    private void addAccountList(Model model, String q, AccountRole role, Boolean enabled, int page) {
+    private void addAccountList(
+            Model model,
+            String q,
+            AccountRole role,
+            Boolean enabled,
+            boolean deleted,
+            int page
+    ) {
         String search = q == null ? "" : q.trim();
         String searchPattern = search.isEmpty()
                 ? null : "%" + search.toLowerCase(java.util.Locale.ROOT) + "%";
@@ -180,6 +211,7 @@ public class AccountController {
                 searchPattern,
                 role,
                 enabled,
+                deleted,
                 PageRequest.of(requestedPage, ACCOUNT_PAGE_SIZE,
                         Sort.by(Sort.Direction.ASC, "username"))
         );
@@ -190,6 +222,7 @@ public class AccountController {
                     searchPattern,
                     role,
                     enabled,
+                    deleted,
                     PageRequest.of(currentPage, ACCOUNT_PAGE_SIZE,
                             Sort.by(Sort.Direction.ASC, "username"))
             );
@@ -200,6 +233,7 @@ public class AccountController {
         model.addAttribute("q", search);
         model.addAttribute("selectedRole", role);
         model.addAttribute("selectedEnabled", enabled);
+        model.addAttribute("deleted", deleted);
         model.addAttribute("currentPage", currentPage);
         model.addAttribute("totalPages", totalPages);
         model.addAttribute("totalAccounts", totalAccounts);

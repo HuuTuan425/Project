@@ -27,8 +27,25 @@ sử hóa đơn và nhập hàng.
 
 Do lược đồ cũ không lưu ngày tạo, các tài khoản hiện có được gán thời điểm di
 chuyển dữ liệu làm ngày tạo. Việc ghi nhận lần đăng nhập gần nhất bắt đầu sau
-bản cập nhật này. Email và số điện thoại chỉ dùng làm thông tin liên hệ; chức
-năng gửi tin nhắn đặt lại mật khẩu chưa được kết nối.
+bản cập nhật này. Email được dùng để gửi liên kết đặt lại mật khẩu; số điện
+thoại hiện chỉ là thông tin liên hệ.
+
+Quản trị viên có thể gửi liên kết đặt lại đến email của tài khoản tại `/tai-khoan`.
+Người dùng cũng có thể chọn “Quên mật khẩu?” ở trang đăng nhập và nhập email
+đã đăng ký. Ứng dụng không tiết lộ email có tồn tại hay không; liên kết chỉ dùng
+một lần và hết hạn sau 30 phút. Cần cấu hình SMTP trước khi sử dụng:
+
+```powershell
+$env:MAIL_PORT = "587"
+$env:MAIL_USERNAME = "your-address@gmail.com"
+$env:MAIL_PASSWORD = "your-google-app-password"
+$env:APP_BASE_URL = "https://your-application.example.com"
+```
+
+Không lưu thông tin SMTP trong mã nguồn. Khi triển khai thật, hãy dùng URL HTTPS
+cho `APP_BASE_URL`; mặc định `http://localhost:8081` chỉ phù hợp chạy cục bộ.
+Gmail dùng máy chủ `smtp.gmail.com` mặc định; cần bật xác minh 2 bước và tạo
+App Password. `MAIL_HOST` và `MAIL_FROM` chỉ cần đặt nếu muốn ghi đè mặc định.
 
 Các vai trò:
 
@@ -114,10 +131,6 @@ Các hướng dẫn sau minh họa cụ thể cách sử dụng một số tính
 * [Xác thực dữ liệu đầu vào](https://spring.io/guides/gs/validating-form-input/)
 * [Kết nối MySQL](https://spring.io/guides/gs/accessing-data-mysql/)
 
-### Ghi đè cấu hình Maven Parent
 
-Theo thiết kế của Maven, một số thành phần được kế thừa từ POM cha sang POM của
-dự án. Phần lớn cấu hình kế thừa phù hợp, nhưng một số mục như `<license>` và
-`<developers>` không cần thiết. Vì vậy, POM của dự án khai báo ghi đè các mục
-này bằng nội dung rỗng. Nếu tự chuyển sang POM cha khác và muốn kế thừa các mục
-đó, hãy xóa những phần ghi đè tương ứng.
+
+

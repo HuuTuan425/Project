@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>Quên mật khẩu</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body class="auth-page auth-reset-page">
+    <main class="auth-container">
+        <section class="auth-content">
+            <div class="auth-heading">
+                <span class="auth-eyebrow">KHÔI PHỤC TÀI KHOẢN</span>
+                <h1>Quên mật khẩu?</h1>
+                <p>Nhập email đã đăng ký để nhận liên kết đặt lại mật khẩu.</p>
+            </div>
+            <p th:if="${requestSubmitted}" class="message success" role="status" aria-live="polite">
+                Nếu email khớp với một tài khoản đang hoạt động, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.
+            </p>
+            <form th:unless="${requestSubmitted}" th:action="@{/quen-mat-khau}" method="post" class="auth-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <div class="auth-input-wrap">
+                        <input id="email" name="email" type="email" maxlength="150"
+                               autocomplete="email" required autofocus>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary auth-submit">Gửi liên kết</button>
+            </form>
+            <p class="auth-footer"><a th:href="@{/dang-nhap}">Quay lại đăng nhập</a></p>
+        </section>
+    </main>
+</body>
+</html>

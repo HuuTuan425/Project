@@ -21,7 +21,8 @@ public class SecurityConfig {
     ) throws Exception {
         return http
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/", "/dang-nhap", "/khong-co-quyen", "/css/**", "/error").permitAll()
+                        .requestMatchers("/", "/dang-nhap", "/khong-co-quyen",
+                                "/quen-mat-khau", "/dat-lai-mat-khau", "/css/**", "/error").permitAll()
                         .requestMatchers("/tai-khoan", "/tai-khoan/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/nhap-hang/nha-cung-cap")
                         .hasAnyRole("ADMIN", "PURCHASING", "WAREHOUSE", "MANAGER")
@@ -65,7 +66,9 @@ public class SecurityConfig {
                         .loginPage("/dang-nhap")
                         .loginProcessingUrl("/dang-nhap")
                         .successHandler((request, response, authentication) -> {
-                            accountService.recordLogin(authentication.getName());
+                            String passwordHash = accountService.recordLogin(authentication.getName());
+                            request.getSession(true).setAttribute(
+                                    AccountStatusFilter.AUTH_PASSWORD_HASH_ATTRIBUTE, passwordHash);
                             String destination = authentication.getAuthorities().stream()
                                     .anyMatch(authority -> authority.getAuthority().equals("ROLE_WAREHOUSE"))
                                     ? "/nhap-hang"

@@ -30,7 +30,10 @@
             </div>
             <p th:if="${param.error}" class="message error">Tên đăng nhập hoặc mật khẩu không đúng.</p>
             <p th:if="${param.locked}" class="message error">Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.</p>
+            <p th:if="${param.deleted}" class="message error">Tài khoản đã bị xóa. Vui lòng liên hệ quản trị viên.</p>
             <p th:if="${param.roleChanged}" class="message error">Quyền tài khoản vừa thay đổi. Vui lòng đăng nhập lại.</p>
+            <p th:if="${param.passwordChanged}" class="message error">Mật khẩu vừa được đặt lại. Vui lòng đăng nhập lại bằng mật khẩu mới.</p>
+            <p th:if="${passwordResetSuccess}" class="message success" th:text="${passwordResetSuccess}"></p>
             <p th:if="${param.logout}" class="message success toast" role="status" aria-live="polite">
                 Bạn đã đăng xuất.
             </p>
@@ -54,6 +57,7 @@
                 </div>
                 <button type="submit" class="btn btn-primary auth-submit">Đăng nhập <span aria-hidden="true">→</span></button>
             </form>
+            <p class="auth-footer"><a th:href="@{/quen-mat-khau}">Quên mật khẩu?</a></p>
             <p class="auth-footer">Hệ thống quản lý bán hàng <span aria-hidden="true">•</span> An toàn và tiện lợi</p>
         </section>
     </main>

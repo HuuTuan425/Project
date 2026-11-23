@@ -46,6 +46,19 @@ public class RetailSchemaMigration implements ApplicationRunner {
                     "ALTER TABLE tai_khoan ADD COLUMN ngay_tao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
             ensureColumn(statement, metadata, catalog, "tai_khoan", "dang_nhap_lan_cuoi",
                     "ALTER TABLE tai_khoan ADD COLUMN dang_nhap_lan_cuoi DATETIME NULL");
+            ensureColumn(statement, metadata, catalog, "tai_khoan", "da_xoa_luc",
+                    "ALTER TABLE tai_khoan ADD COLUMN da_xoa_luc DATETIME NULL");
+            statement.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS password_reset_token (
+                        account_id BIGINT NOT NULL,
+                        token_hash CHAR(64) NOT NULL,
+                        expires_at DATETIME NOT NULL,
+                        PRIMARY KEY (account_id),
+                        UNIQUE KEY uk_password_reset_token_hash (token_hash),
+                        CONSTRAINT fk_password_reset_token_account
+                            FOREIGN KEY (account_id) REFERENCES tai_khoan(id) ON DELETE CASCADE
+                    )
+                    """);
             ensureColumn(statement, metadata, catalog, "hoa_don", "da_huy",
                     "ALTER TABLE hoa_don ADD COLUMN da_huy BOOLEAN NOT NULL DEFAULT FALSE");
             ensureColumn(statement, metadata, catalog, "hoa_don", "ngay_huy",

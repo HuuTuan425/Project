@@ -55,7 +55,7 @@
             </form>
 
             <details class="account-list-panel"
-                     th:open="${not #strings.isEmpty(q) or selectedRole != null or selectedEnabled != null}">
+                     th:open="${not #strings.isEmpty(q) or selectedRole != null or selectedEnabled != null or deleted}">
                 <summary>
                     <span>Xem danh sách tài khoản</span>
                     <span class="account-list-count"
@@ -84,8 +84,15 @@
                             <option value="false" th:selected="${selectedEnabled == false}">Tạm khóa</option>
                         </select>
                     </div>
+                    <div>
+                        <label for="account-deleted">Tình trạng xóa</label>
+                        <select id="account-deleted" name="deleted">
+                            <option value="false" th:selected="${!deleted}">Tài khoản thông thường</option>
+                            <option value="true" th:selected="${deleted}">Đã xóa</option>
+                        </select>
+                    </div>
                     <button type="submit" class="btn btn-primary">Lọc</button>
-                    <a th:if="${not #strings.isEmpty(q) or selectedRole != null or selectedEnabled != null}"
+                    <a th:if="${not #strings.isEmpty(q) or selectedRole != null or selectedEnabled != null or deleted}"
                        th:href="@{/tai-khoan}" class="btn btn-secondary">Xóa bộ lọc</a>
                 </form>
                 <div th:if="${#lists.isEmpty(accounts)}" class="invoice-no-results account-no-results"
@@ -115,11 +122,12 @@
                                 <td th:text="${account.phone != null ? account.phone : '-'}"></td>
                                 <td th:text="${account.email != null ? account.email : '-'}"></td>
                                 <td th:text="${account.role.displayName}"></td>
-                                <td th:text="${account.enabled ? 'Hoạt động' : 'Tạm khóa'}"></td>
+                                <td th:text="${account.deleted ? 'Đã xóa' : (account.enabled ? 'Hoạt động' : 'Tạm khóa')}"></td>
                                 <td th:text="${account.createdAt != null ? #temporals.format(account.createdAt, 'dd/MM/yyyy HH:mm') : '-'}"></td>
                                 <td th:text="${account.lastLoginAt != null ? #temporals.format(account.lastLoginAt, 'dd/MM/yyyy HH:mm') : 'Chưa đăng nhập'}"></td>
                                 <td class="account-actions-cell">
                                     <div class="account-actions">
+                                        <th:block th:if="${!account.deleted}">
                                         <a class="btn btn-secondary btn-small"
                                            th:href="@{/tai-khoan/{id}/sua(id=${account.id})}">Sửa</a>
                                         <form th:if="${account.username != currentUsername}"
@@ -133,12 +141,20 @@
                                         </form>
                                         <span th:if="${account.username == currentUsername}"
                                               class="account-current-badge">Đang đăng nhập</span>
+                                        <form th:if="${account.username != currentUsername}"
+                                              th:action="@{/tai-khoan/{id}/dat-lai-mat-khau(id=${account.id})}"
+                                              method="post">
+                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                            <button type="submit" class="btn btn-secondary btn-small">Gửi link đặt lại mật khẩu</button>
+                                        </form>
                                         <button th:if="${account.username != currentUsername}" type="button"
                                                 class="btn btn-outline-danger btn-small account-delete-trigger"
                                                 th:attr="data-delete-url=@{/tai-khoan/{id}/xoa(id=${account.id})},
                                                          data-account-name=${account.fullName}">
                                             Xóa
                                         </button>
+                                        </th:block>
+                                        <span th:if="${account.deleted}" class="account-current-badge">Đã xóa · chỉ xem</span>
                                     </div>
                                 </td>
                             </tr>
@@ -151,22 +167,22 @@
                           th:text="${'Hiển thị ' + pageStart + '–' + pageEnd + ' trên ' + totalAccounts + ' tài khoản · Trang ' + (currentPage + 1) + '/' + totalPages}"></span>
                     <div class="pagination-controls">
                         <a th:if="${currentPage > 0}" class="pagination-link"
-                           th:href="@{/tai-khoan(q=${q},role=${selectedRole},enabled=${selectedEnabled},page=0)}">Đầu</a>
+                           th:href="@{/tai-khoan(q=${q},role=${selectedRole},enabled=${selectedEnabled},deleted=${deleted},page=0)}">Đầu</a>
                         <span th:unless="${currentPage > 0}" class="pagination-link is-disabled">Đầu</span>
                         <a th:if="${currentPage > 0}" class="pagination-link"
-                           th:href="@{/tai-khoan(q=${q},role=${selectedRole},enabled=${selectedEnabled},page=${currentPage - 1})}">‹</a>
+                           th:href="@{/tai-khoan(q=${q},role=${selectedRole},enabled=${selectedEnabled},deleted=${deleted},page=${currentPage - 1})}">‹</a>
                         <span th:unless="${currentPage > 0}" class="pagination-link is-disabled">‹</span>
                         <a th:each="pageNumber : ${#numbers.sequence(0, totalPages - 1)}"
                            th:if="${pageNumber >= currentPage - 2 and pageNumber <= currentPage + 2}"
                            th:class="${pageNumber == currentPage ? 'pagination-link is-current' : 'pagination-link'}"
                            th:attr="aria-current=${pageNumber == currentPage ? 'page' : null}"
-                           th:href="@{/tai-khoan(q=${q},role=${selectedRole},enabled=${selectedEnabled},page=${pageNumber})}"
+                           th:href="@{/tai-khoan(q=${q},role=${selectedRole},enabled=${selectedEnabled},deleted=${deleted},page=${pageNumber})}"
                            th:text="${pageNumber + 1}"></a>
                         <a th:if="${currentPage + 1 < totalPages}" class="pagination-link"
-                           th:href="@{/tai-khoan(q=${q},role=${selectedRole},enabled=${selectedEnabled},page=${currentPage + 1})}">›</a>
+                           th:href="@{/tai-khoan(q=${q},role=${selectedRole},enabled=${selectedEnabled},deleted=${deleted},page=${currentPage + 1})}">›</a>
                         <span th:unless="${currentPage + 1 < totalPages}" class="pagination-link is-disabled">›</span>
                         <a th:if="${currentPage + 1 < totalPages}" class="pagination-link"
-                           th:href="@{/tai-khoan(q=${q},role=${selectedRole},enabled=${selectedEnabled},page=${totalPages - 1})}">Cuối</a>
+                           th:href="@{/tai-khoan(q=${q},role=${selectedRole},enabled=${selectedEnabled},deleted=${deleted},page=${totalPages - 1})}">Cuối</a>
                         <span th:unless="${currentPage + 1 < totalPages}" class="pagination-link is-disabled">Cuối</span>
                     </div>
                 </nav>
@@ -180,12 +196,12 @@
                 <div class="confirmation-dialog-icon" aria-hidden="true">!</div>
                 <h2 id="account-delete-title">Xác nhận xóa tài khoản?</h2>
                 <p id="account-delete-description">
-                    Bạn có chắc muốn xóa tài khoản <strong id="account-delete-name"></strong>?
-                    Tài khoản đã có lịch sử hóa đơn hoặc phiếu nhập sẽ không thể xóa.
+                    Tài khoản <strong id="account-delete-name"></strong> sẽ không đăng nhập được nữa,
+                    được chuyển sang trạng thái “Đã xóa”; lịch sử hóa đơn và phiếu nhập vẫn được giữ nguyên.
                 </p>
                 <div class="confirmation-dialog-actions">
                     <button type="button" class="btn btn-secondary" id="cancel-account-delete">Hủy</button>
-                    <button type="button" class="btn btn-outline-danger" id="confirm-account-delete">Xóa tài khoản</button>
+                    <button type="button" class="btn btn-outline-danger" id="confirm-account-delete">Xóa mềm tài khoản</button>
                 </div>
             </dialog>
             <form id="account-delete-form" method="post" hidden>

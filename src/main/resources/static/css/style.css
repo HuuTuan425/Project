@@ -15,13 +15,6 @@
     box-sizing: border-box;
 }
 
-.icon-sprite {
-    position: absolute;
-    width: 0;
-    height: 0;
-    overflow: hidden;
-}
-
 body {
     min-width: 320px;
     height: 100vh;
@@ -76,12 +69,9 @@ body {
     border-radius: 12px;
     background: linear-gradient(145deg, #2563eb, #0f9f73);
     color: #fff;
+    font-size: 1.2rem;
+    font-weight: 800;
     box-shadow: 0 6px 16px rgb(2 8 23 / 22%);
-}
-
-.menu-brand-mark svg {
-    width: 30px;
-    height: 30px;
 }
 
 .menu-brand-copy {
@@ -133,14 +123,13 @@ body {
 }
 
 .menu-icon {
+    display: inline-grid;
     width: 18px;
     height: 18px;
     flex: 0 0 18px;
-    fill: none;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.7;
+    place-items: center;
+    font-size: 16px;
+    line-height: 1;
 }
 
 .app-main {
@@ -2813,11 +2802,6 @@ body.auth-page {
         height: 36px;
         flex-basis: 36px;
         border-radius: 10px;
-    }
-
-    .menu-brand-mark svg {
-        width: 26px;
-        height: 26px;
     }
 
     .menu-brand-copy strong {

@@ -3,6 +3,7 @@ package com.vuhuutuan.Project.model;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import jakarta.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "khach_hang")
@@ -37,6 +38,9 @@ public class KhachHang {
 
     @Column(name = "diem_thuong")
     private Integer diemThuong;
+
+    @Column(name = "da_xoa_luc")
+    private LocalDateTime deletedAt;
 
     public Long getMaKhachHang() {
         return maKhachHang;
@@ -108,6 +112,18 @@ public class KhachHang {
 
     public void setDiemThuong(Integer diemThuong) {
         this.diemThuong = diemThuong;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
     
 }

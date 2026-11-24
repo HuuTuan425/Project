@@ -1,6 +1,7 @@
 package com.vuhuutuan.Project.repository;
 
 import com.vuhuutuan.Project.model.HoaDon;
+import com.vuhuutuan.Project.model.KhachHang;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface HoaDonRepository extends JpaRepository<HoaDon, Long> {
     java.util.List<HoaDon> findAllByOrderByThoiGianThanhToanDesc();
+    boolean existsByKhachHang(KhachHang khachHang);
 
     @Query(
             value = """

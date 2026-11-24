@@ -12,11 +12,16 @@ import java.util.List;
 
 @Repository
 public interface MatHangRepository extends JpaRepository<MatHang, Long> {
-    List<MatHang> findByTenMatHangContainingIgnoreCaseOrderByTenMatHangAsc(String query);
+    List<MatHang> findByDeletedAtIsNullOrderByTenMatHangAsc();
+
+    List<MatHang> findByDeletedAtIsNullAndTenMatHangContainingIgnoreCaseOrderByTenMatHangAsc(String query);
+
+    java.util.Optional<MatHang> findByMaMatHangAndDeletedAtIsNull(Long maMatHang);
 
     @Query("""
             select m from MatHang m
-            where (:productId is null or m.maMatHang = :productId)
+            where m.deletedAt is null
+            and (:productId is null or m.maMatHang = :productId)
             and (:query is null
                 or lower(m.tenMatHang) like :query
                 or lower(coalesce(m.hangSanXuat, '')) like :query)

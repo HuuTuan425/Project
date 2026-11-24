@@ -50,6 +50,9 @@ public class MatHang {
     @Column(name = "quantity_in_stock", nullable = false)
     private Integer quantityInStock = 0;
 
+    @Column(name = "da_xoa_luc")
+    private LocalDateTime deletedAt;
+
     public Double getGiaApDung(LocalDateTime thoiDiem) {
         if (giaKhuyenMai == null || giaKhuyenMai <= 0) {
             return giaBanGoc;
@@ -158,5 +161,16 @@ public class MatHang {
     public void setQuantityInStock(Integer quantityInStock) {
         this.quantityInStock = quantityInStock;
     }
-    
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
 }

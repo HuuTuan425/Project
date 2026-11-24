@@ -116,6 +116,9 @@ public class HoaDonService {
         quantitiesByProduct.keySet().stream().sorted(Comparator.naturalOrder())
                 .forEach(id -> lockedProducts.put(id, matHangRepository.findByIdForUpdate(id)
                         .orElseThrow(() -> new IllegalArgumentException("Có mặt hàng không còn tồn tại."))));
+        if (lockedProducts.values().stream().anyMatch(MatHang::isDeleted)) {
+            throw new IllegalArgumentException("Không thể bán mặt hàng đã bị xóa.");
+        }
 
         LocalDateTime paidAt = LocalDateTime.now();
         HoaDon invoice = new HoaDon();

@@ -4,6 +4,8 @@
 <body>
     <div th:replace="~{khachhang/layout :: page(~{::section})}">
         <section>
+            <p th:if="${successMessage}" class="message success" th:text="${successMessage}"></p>
+            <p th:if="${errorMessage}" class="message error" th:text="${errorMessage}"></p>
             <div class="page-heading">
                 <div>
                     <h1>Danh sách khách hàng</h1>
@@ -60,11 +62,12 @@
                                        class="btn btn-sm btn-outline-primary">
                                         <span aria-hidden="true">✏️</span> Sửa
                                     </a>
-                                    <a th:href="@{/khach-hang/xoa/{id}(id=${kh.maKhachHang})}"
-                                       class="btn btn-sm btn-outline-danger"
-                                       onclick="return confirm('Bạn có chắc muốn xóa khách hàng này?')">
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger customer-delete-trigger"
+                                            th:attr="data-delete-url=@{/khach-hang/xoa/{id}(id=${kh.maKhachHang})},
+                                                     data-customer-name=${kh.hoTen}">
                                         <span aria-hidden="true">🗑️</span> Xóa
-                                    </a>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -99,6 +102,47 @@
                     <span th:unless="${currentPage + 1 < totalPages}" class="pagination-link is-disabled">Cuối</span>
                 </div>
             </nav>
+            <dialog class="confirmation-dialog" id="customer-delete-confirmation"
+                    aria-labelledby="customer-delete-title"
+                    aria-describedby="customer-delete-description">
+                <form method="dialog" class="confirmation-dialog-dismiss">
+                    <button type="submit" class="confirmation-close" aria-label="Đóng">×</button>
+                </form>
+                <div class="confirmation-dialog-icon" aria-hidden="true">!</div>
+                <h2 id="customer-delete-title">Xác nhận xóa khách hàng?</h2>
+                <p id="customer-delete-description">
+                    Khách hàng <strong id="customer-delete-name"></strong> sẽ được xóa khỏi danh sách.
+                    Dữ liệu khách hàng và lịch sử hóa đơn vẫn được giữ nguyên.
+                    Bạn có chắc chắn muốn tiếp tục?
+                </p>
+                <div class="confirmation-dialog-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-customer-delete">Hủy</button>
+                    <button type="button" class="btn btn-outline-danger" id="confirm-customer-delete">Xóa khách hàng</button>
+                </div>
+            </dialog>
+            <form id="customer-delete-form" method="post" hidden>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            </form>
+            <script>
+                const customerDeleteDialog = document.getElementById('customer-delete-confirmation');
+                const customerDeleteForm = document.getElementById('customer-delete-form');
+                const customerDeleteName = document.getElementById('customer-delete-name');
+
+                document.querySelectorAll('.customer-delete-trigger').forEach((button) => {
+                    button.addEventListener('click', () => {
+                        customerDeleteForm.action = button.dataset.deleteUrl;
+                        customerDeleteName.textContent = button.dataset.customerName;
+                        customerDeleteDialog.showModal();
+                    });
+                });
+
+                document.getElementById('cancel-customer-delete').addEventListener('click', () => {
+                    customerDeleteDialog.close();
+                });
+                document.getElementById('confirm-customer-delete').addEventListener('click', () => {
+                    customerDeleteForm.requestSubmit();
+                });
+            </script>
         </section>
     </div>
 </body>

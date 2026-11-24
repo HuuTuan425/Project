@@ -133,7 +133,8 @@ public class MatHangController {
     public String xoa(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
             matHangService.deleteById(id);
-            redirectAttributes.addFlashAttribute("successMessage", "Đã xóa mặt hàng.");
+            redirectAttributes.addFlashAttribute(
+                    "successMessage", "Đã ẩn mặt hàng khỏi danh sách; lịch sử giao dịch được giữ nguyên.");
         } catch (IllegalStateException exception) {
             redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
         } catch (NoSuchElementException exception) {

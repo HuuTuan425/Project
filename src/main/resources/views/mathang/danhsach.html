@@ -68,14 +68,12 @@
                                        class="btn btn-sm btn-outline-primary">
                                         <span aria-hidden="true">✏️</span> Sửa
                                     </a>
-                                    <form th:if="${isAdmin}" th:action="@{/mat-hang/xoa/{id}(id=${mh.maMatHang})}"
-                                          method="post" class="product-delete-form">
-                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                onclick="return confirm('Bạn có chắc muốn xóa mặt hàng này?')">
-                                            <span aria-hidden="true">🗑️</span> Xóa
-                                        </button>
-                                    </form>
+                                    <button th:if="${isAdmin}" type="button"
+                                            class="btn btn-sm btn-outline-danger product-delete-trigger"
+                                            th:attr="data-delete-url=@{/mat-hang/xoa/{id}(id=${mh.maMatHang})},
+                                                     data-product-name=${mh.tenMatHang}">
+                                        <span aria-hidden="true">🗑️</span> Xóa
+                                    </button>
                                     <span th:if="${isWarehouse or isPurchasing}" class="account-role">Chỉ xem</span>
                                 </div>
                             </td>
@@ -83,6 +81,47 @@
                     </tbody>
                 </table>
             </div>
+            <dialog class="confirmation-dialog" id="product-delete-confirmation"
+                    aria-labelledby="product-delete-title"
+                    aria-describedby="product-delete-description">
+                <form method="dialog" class="confirmation-dialog-dismiss">
+                    <button type="submit" class="confirmation-close" aria-label="Đóng">×</button>
+                </form>
+                <div class="confirmation-dialog-icon" aria-hidden="true">!</div>
+                <h2 id="product-delete-title">Xác nhận xóa mặt hàng?</h2>
+                <p id="product-delete-description">
+                    Mặt hàng <strong id="product-delete-name"></strong> sẽ bị ẩn khỏi danh sách.
+                    Lịch sử hóa đơn và phiếu nhập vẫn được giữ lại.
+                    Bạn có chắc chắn muốn tiếp tục?
+                </p>
+                <div class="confirmation-dialog-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-product-delete">Hủy</button>
+                    <button type="button" class="btn btn-outline-danger" id="confirm-product-delete">Xóa mặt hàng</button>
+                </div>
+            </dialog>
+            <form id="product-delete-form" method="post" hidden>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            </form>
+            <script>
+                const productDeleteDialog = document.getElementById('product-delete-confirmation');
+                const productDeleteForm = document.getElementById('product-delete-form');
+                const productDeleteName = document.getElementById('product-delete-name');
+
+                document.querySelectorAll('.product-delete-trigger').forEach((button) => {
+                    button.addEventListener('click', () => {
+                        productDeleteForm.action = button.dataset.deleteUrl;
+                        productDeleteName.textContent = button.dataset.productName;
+                        productDeleteDialog.showModal();
+                    });
+                });
+
+                document.getElementById('cancel-product-delete').addEventListener('click', () => {
+                    productDeleteDialog.close();
+                });
+                document.getElementById('confirm-product-delete').addEventListener('click', () => {
+                    productDeleteForm.requestSubmit();
+                });
+            </script>
         </section>
     </div>
 </body>

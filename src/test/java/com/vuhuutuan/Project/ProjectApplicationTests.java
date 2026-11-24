@@ -27,6 +27,7 @@ import com.vuhuutuan.Project.repository.PurchaseOrderRepository;
 import com.vuhuutuan.Project.repository.SupplierRepository;
 import com.vuhuutuan.Project.repository.SupplierProposalRepository;
 import com.vuhuutuan.Project.service.HoaDonService;
+import com.vuhuutuan.Project.service.MatHangService;
 import com.vuhuutuan.Project.service.PurchasingService;
 import com.vuhuutuan.Project.service.ReceiptPdfService;
 import org.junit.jupiter.api.AfterEach;
@@ -106,6 +107,9 @@ class ProjectApplicationTests {
 
 	@Autowired
 	private MatHangRepository matHangRepository;
+
+	@Autowired
+	private MatHangService matHangService;
 
 	@Autowired
 	private KhachHangRepository khachHangRepository;
@@ -816,6 +820,21 @@ class ProjectApplicationTests {
 
 	@Test
 	@Transactional
+	void deletingProductKeepsRecordAndHidesItFromCatalogSearch() {
+		MatHang product = new MatHang();
+		product.setTenMatHang("Soft-delete-" + UUID.randomUUID().toString().substring(0, 8));
+		product.setLoaiMatHang(LoaiMatHang.HANG_THOI_TRANG);
+		product.setGiaBanGoc(10_000.0);
+		matHangRepository.save(product);
+
+		matHangService.deleteById(product.getMaMatHang());
+
+		assertTrue(matHangRepository.findById(product.getMaMatHang()).orElseThrow().isDeleted());
+		assertTrue(matHangRepository.searchProducts(product.getMaMatHang(), null).isEmpty());
+	}
+
+	@Test
+	@Transactional
 	void administratorsCanSearchAndPaginateCustomers() throws Exception {
 		AppUser admin = createAccount(AccountRole.ADMIN);
 		MockHttpSession session = login(admin.getUsername());
@@ -844,6 +863,9 @@ class ProjectApplicationTests {
 				.andExpect(content().string(containsString(">0 điểm</span>")))
 				.andExpect(content().string(containsString("btn btn-sm btn-outline-primary")))
 				.andExpect(content().string(containsString("btn btn-sm btn-outline-danger")))
+				.andExpect(content().string(containsString("customer-delete-trigger")))
+				.andExpect(content().string(containsString("customer-delete-confirmation")))
+				.andExpect(content().string(containsString("Xác nhận xóa khách hàng?")))
 				.andExpect(content().string(containsString("Trang 1/2")))
 				.andExpect(content().string(containsString("class=\"text-center\">-</td>")));
 		mockMvc.perform(get("/khach-hang").session(session).param("q", searchToken).param("page", "1"))
@@ -859,6 +881,30 @@ class ProjectApplicationTests {
 				.andExpect(status().isOk())
 				.andExpect(content().string(containsString("Không tìm thấy khách hàng phù hợp")))
 				.andExpect(content().string(containsString(missingName)));
+	}
+
+	@Test
+	void administratorCanSoftDeleteCustomerWhileKeepingItInDatabase() throws Exception {
+		AppUser admin = createAccount(AccountRole.ADMIN);
+		MockHttpSession session = login(admin.getUsername());
+		KhachHang customer = new KhachHang();
+		customer.setHoTen("Khách hàng xóa mềm");
+		customer.setLoaiKhachHang(LoaiKhachHang.MUA_LE);
+		customer.setDiemThuong(0);
+		customer = khachHangRepository.save(customer);
+
+		mockMvc.perform(post("/khach-hang/xoa/{id}", customer.getMaKhachHang()).session(session))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/khach-hang"))
+				.andExpect(flash().attribute("successMessage",
+						"Đã xóa mềm khách hàng; lịch sử hóa đơn vẫn được giữ."));
+
+		KhachHang deletedCustomer = khachHangRepository.findById(customer.getMaKhachHang()).orElseThrow();
+		assertTrue(deletedCustomer.isDeleted());
+
+		mockMvc.perform(get("/khach-hang").session(session).param("q", "Khách hàng xóa mềm"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("Không tìm thấy khách hàng phù hợp")));
 	}
 
 	@Test

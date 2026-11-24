@@ -15,14 +15,16 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Long> {
     @Query(
             value = """
                     select k from KhachHang k
-                    where (:search is null
+                    where k.deletedAt is null
+                    and (:search is null
                         or lower(k.hoTen) like :search
                         or lower(k.soCMND) like :search
                         or lower(k.soDienThoai) like :search)
                     """,
             countQuery = """
                     select count(k) from KhachHang k
-                    where (:search is null
+                    where k.deletedAt is null
+                    and (:search is null
                         or lower(k.hoTen) like :search
                         or lower(k.soCMND) like :search
                         or lower(k.soDienThoai) like :search)

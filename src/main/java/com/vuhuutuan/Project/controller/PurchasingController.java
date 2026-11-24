@@ -359,7 +359,7 @@ public class PurchasingController {
         } else if (form.getLines() == null || form.getLines().isEmpty()) {
             form.setLines(new ArrayList<>(List.of(new PurchaseOrderLineForm())));
         }
-        List<MatHang> products = matHangRepository.findAll();
+        List<MatHang> products = matHangRepository.findByDeletedAtIsNullOrderByTenMatHangAsc();
         model.addAttribute("suppliers", purchasingService.findSuppliers());
         model.addAttribute("matHangs", products);
     }

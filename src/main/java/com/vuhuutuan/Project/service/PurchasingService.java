@@ -233,8 +233,8 @@ public class PurchasingService {
                 throw new IllegalArgumentException("Không thể nhập lô hàng đã hết hạn sử dụng.");
             }
 
-            MatHang product = matHangRepository.findById(requested.getProductId())
-                    .orElseThrow(() -> new IllegalArgumentException("Có mặt hàng không còn tồn tại."));
+            MatHang product = matHangRepository.findByMaMatHangAndDeletedAtIsNull(requested.getProductId())
+                    .orElseThrow(() -> new IllegalArgumentException("Mặt hàng đã bị xóa hoặc không còn tồn tại."));
             PurchaseOrderLine line = new PurchaseOrderLine();
             line.setPurchaseOrder(purchaseOrder);
             line.setProduct(product);

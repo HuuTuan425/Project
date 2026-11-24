@@ -115,9 +115,15 @@ public class KhachHangController {
     }
 
     //  Xử lý Xóa
-    @GetMapping("/xoa/{id}")
-    public String xoa(@PathVariable("id") Long id) {
-        khachHangService.deleteById(id);
+    @PostMapping("/xoa/{id}")
+    public String xoa(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
+        try {
+            khachHangService.deleteById(id);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Đã xóa mềm khách hàng; lịch sử hóa đơn vẫn được giữ.");
+        } catch (IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        }
         return "redirect:/khach-hang";
     }
 

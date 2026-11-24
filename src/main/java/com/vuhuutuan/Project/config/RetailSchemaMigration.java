@@ -36,6 +36,11 @@ public class RetailSchemaMigration implements ApplicationRunner {
             requireTable(metadata, catalog, "chi_tiet_hoa_don");
             requireTable(metadata, catalog, "tai_khoan");
 
+            ensureColumn(statement, metadata, catalog, "khach_hang", "da_xoa_luc",
+                    "ALTER TABLE khach_hang ADD COLUMN da_xoa_luc DATETIME NULL");
+            ensureColumn(statement, metadata, catalog, "mat_hang", "da_xoa_luc",
+                    "ALTER TABLE mat_hang ADD COLUMN da_xoa_luc DATETIME NULL");
+
             ensureColumn(statement, metadata, catalog, "tai_khoan", "ho_ten",
                     "ALTER TABLE tai_khoan ADD COLUMN ho_ten VARCHAR(120) NULL");
             ensureColumn(statement, metadata, catalog, "tai_khoan", "so_dien_thoai",

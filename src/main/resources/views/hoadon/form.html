@@ -4,10 +4,8 @@
 <body>
     <div th:replace="~{khachhang/layout :: page(~{::section})}">
         <section>
-            <div class="page-heading">
-                <div>
-                    <h1>Lập hóa đơn</h1>
-                </div>
+            <div class="page-heading invoice-page-heading-compat">
+                <h1>Lập hóa đơn</h1>
             </div>
             <p th:if="${errorMessage}" class="message error" th:text="${errorMessage}"></p>
             <p th:if="${#lists.isEmpty(khachHangs)}" class="message error">Chưa có khách hàng. Hãy thêm khách hàng trước.</p>
@@ -15,10 +13,6 @@
                 <span class="cashier-sale-notice-icon" aria-hidden="true">i</span>
                 <p>Cổng thanh toán điện tử chưa được kết nối. Hãy xác nhận giao dịch bên ngoài trước khi ghi nhận.</p>
             </div>
-            <div th:if="${isCashier}" class="cashier-customer-action">
-                <a th:href="@{/khach-hang/them(from='sale')}" class="btn btn-outline-primary">＋ Thêm khách hàng mới</a>
-            </div>
-
             <div th:if="${#lists.isEmpty(matHangs)}" class="message error">
                 <strong>Chưa có mặt hàng còn tồn để bán.</strong>
                 <p th:if="${isAdmin}">Hãy kiểm tra mặt hàng, tạo phiếu nhập và xác nhận đã nhận hàng trước khi lập hóa đơn.</p>
@@ -33,71 +27,120 @@
             <form th:if="${!#lists.isEmpty(matHangs)}"
                   th:action="@{/hoa-don/lap}" th:object="${invoiceForm}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <div class="form-group">
-                    <label for="customerId">Khách hàng</label>
-                    <select id="customerId" th:field="*{customerId}" required>
-                        <option value="">-- Chọn khách hàng --</option>
-                        <option th:each="kh : ${khachHangs}" th:value="${kh.maKhachHang}"
-                                th:text="${kh.hoTen + ' (mã ' + kh.maKhachHang + ')'}"
-                                th:attr="data-points=${kh.diemThuong != null ? kh.diemThuong : 0}"></option>
-                    </select>
-                </div>
-                <p>Điểm hiện có: <strong id="points-balance" th:text="${redeemablePoints}"></strong> (1 điểm = 1.000đ)</p>
-                <div class="form-group">
-                    <label for="pointsToRedeem">Điểm muốn dùng</label>
-                    <input id="pointsToRedeem" type="number" min="0" th:field="*{pointsToRedeem}">
-                </div>
-                <div class="form-group">
-                    <label for="paymentMethod">Phương thức thanh toán</label>
-                    <select id="paymentMethod" th:field="*{paymentMethod}" required>
-                        <option value="">-- Chọn phương thức --</option>
-                        <option th:each="method : ${paymentMethods}" th:value="${method}" th:text="${method.displayName}"></option>
-                    </select>
-                </div>
-                <div class="form-group" id="cash-tendered-group">
-                    <label for="cashTendered">Tiền mặt khách đưa (chỉ áp dụng tiền mặt)</label>
-                    <input id="cashTendered" type="number" min="0" step="0.01" th:field="*{cashTendered}">
-                </div>
-                <div class="form-group" id="external-payment-confirmation" hidden>
-                    <label>
-                        <input id="nonCashPaymentConfirmed" type="checkbox" th:field="*{nonCashPaymentConfirmed}">
-                        Tôi đã kiểm tra và xác nhận giao dịch chuyển khoản/ví đã thành công.
-                    </label>
-                </div>
+                <div class="invoice-workspace">
+                    <section class="invoice-card invoice-products-card">
+                        <div class="invoice-card-heading">
+                            <h2>Mặt hàng</h2>
+                        </div>
+                        <div class="product-search-wrap">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                            <input id="product-search" type="search" placeholder="Tìm mặt hàng">
+                        </div>
+                        <div class="invoice-table-wrap">
+                            <table class="invoice-line-table">
+                                <thead>
+                                    <tr><th>STT</th><th>Tên mặt hàng</th><th>Đơn giá</th><th>Số lượng</th><th>Thành tiền</th><th>Xóa</th></tr>
+                                </thead>
+                                <tbody id="invoice-lines">
+                                    <tr class="invoice-line" th:each="line, row : *{lines}">
+                                        <td class="invoice-row-number" th:text="${row.count}"></td>
+                                        <td>
+                                            <select th:id="${'product-' + row.index}" th:field="*{lines[__${row.index}__].productId}">
+                                                <option value="">-- Chọn mặt hàng --</option>
+                                                <option th:each="mh : ${matHangs}" th:value="${mh.maMatHang}"
+                                                        th:attr="data-price=${giaMatHangs[mh.maMatHang]}"
+                                                        th:text="${mh.tenMatHang + ' (còn ' + mh.quantityInStock + ')'}"></option>
+                                            </select>
+                                        </td>
+                                        <td class="unit-price">0 đ</td>
+                                        <td>
+                                            <div class="quantity-stepper">
+                                                <button type="button" class="quantity-minus" aria-label="Giảm số lượng">−</button>
+                                                <input th:id="${'quantity-' + row.index}" type="number" min="1"
+                                                       th:field="*{lines[__${row.index}__].quantity}">
+                                                <button type="button" class="quantity-plus" aria-label="Tăng số lượng">+</button>
+                                            </div>
+                                        </td>
+                                        <td class="line-total">0 đ</td>
+                                        <td><button type="button" class="remove-line" aria-label="Xóa dòng hàng">×</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <button id="add-line" type="button" class="btn add-line-button">＋ Thêm dòng hàng</button>
+                    </section>
 
-                <h3>Mặt hàng</h3>
-                <div class="form-group">
-                    <label for="product-search">Tìm mặt hàng</label>
-                    <input id="product-search" type="search" placeholder="Nhập tên mặt hàng để lọc">
+                    <aside class="invoice-card invoice-payment-card">
+                        <div class="form-group customer-select-row">
+                            <label for="customerId">Khách hàng</label>
+                            <div class="customer-select-actions">
+                                <select id="customerId" th:field="*{customerId}" required>
+                                    <option value="">-- Chọn khách hàng --</option>
+                                    <option th:each="kh : ${khachHangs}" th:value="${kh.maKhachHang}"
+                                            th:text="${kh.hoTen + ' (mã ' + kh.maKhachHang + ')'}"
+                                            th:attr="data-points=${kh.diemThuong != null ? kh.diemThuong : 0}"></option>
+                                </select>
+                                <a th:if="${isCashier}" th:href="@{/khach-hang/them(from='sale')}" class="customer-add-button" aria-label="Thêm khách hàng mới">+</a>
+                            </div>
+                        </div>
+                        <p class="points-caption">Điểm hiện có: <strong id="points-balance" th:text="${redeemablePoints}">0</strong> (1 điểm = 1.000đ)</p>
+                        <div class="form-group points-input-group">
+                            <label for="pointsToRedeem">Điểm muốn dùng</label>
+                            <div class="points-input-wrap">
+                                <input id="pointsToRedeem" type="number" min="0" th:field="*{pointsToRedeem}">
+                                <button type="button" id="use-all-points">Dùng hết</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="paymentMethod">Phương thức thanh toán</label>
+                            <select id="paymentMethod" th:field="*{paymentMethod}" required>
+                                <option value="">-- Chọn phương thức --</option>
+                                <option th:each="method : ${paymentMethods}" th:value="${method}" th:text="${method.displayName}"></option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="cash-tendered-group">
+                            <label for="cashTendered">Tiền mặt khách đưa</label>
+                            <input id="cashTendered" type="number" min="0" step="0.01" th:field="*{cashTendered}">
+                        </div>
+                        <div class="form-group" id="external-payment-confirmation" hidden>
+                            <label>
+                                <input id="nonCashPaymentConfirmed" type="checkbox" th:field="*{nonCashPaymentConfirmed}">
+                                Đã xác nhận giao dịch đã thành công.
+                            </label>
+                        </div>
+                        <div class="invoice-divider"></div>
+                        <div class="invoice-summary">
+                            <div><span>Tạm tính</span><strong id="subtotal-amount">0 đ</strong></div>
+                            <div><span>Giảm giá điểm thưởng</span><strong id="points-discount">−0 đ</strong></div>
+                            <div class="invoice-grand-total"><span>Khách cần trả</span><strong id="grand-total">0 đ</strong></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary invoice-save-button">Lưu hóa đơn</button>
+                    </aside>
                 </div>
-                <div id="invoice-lines">
-                    <div class="invoice-line form-group" th:each="line, row : *{lines}">
-                        <label th:for="${'product-' + row.index}">Mặt hàng</label>
-                        <select th:id="${'product-' + row.index}" th:field="*{lines[__${row.index}__].productId}">
-                            <option value="">-- Chọn mặt hàng --</option>
-                            <option th:each="mh : ${matHangs}" th:value="${mh.maMatHang}"
-                                    th:text="${mh.tenMatHang + ' (còn ' + mh.quantityInStock + ') - ' + (giaMatHangs[mh.maMatHang] != null ? #numbers.formatDecimal(giaMatHangs[mh.maMatHang], 0, 'COMMA', 0, 'POINT') + ' đ' : 'Chưa có giá hợp lệ')}"></option>
-                        </select>
-                        <label th:for="${'quantity-' + row.index}">Số lượng</label>
-                        <input th:id="${'quantity-' + row.index}" type="number" min="1"
-                               th:field="*{lines[__${row.index}__].quantity}">
-                    </div>
-                </div>
-                <button id="add-line" type="button" class="btn btn-primary">+ Thêm dòng hàng</button>
-                <button type="submit" class="btn btn-success">Lưu hóa đơn</button>
             </form>
 
             <template th:if="${!#lists.isEmpty(matHangs)}" id="line-template">
-                <div class="invoice-line form-group">
-                    <label>Mặt hàng</label>
-                    <select name="lines[__index__].productId">
-                        <option value="">-- Chọn mặt hàng --</option>
-                        <option th:each="mh : ${matHangs}" th:value="${mh.maMatHang}"
-                                th:text="${mh.tenMatHang + ' (còn ' + mh.quantityInStock + ') - ' + (giaMatHangs[mh.maMatHang] != null ? #numbers.formatDecimal(giaMatHangs[mh.maMatHang], 0, 'COMMA', 0, 'POINT') + ' đ' : 'Chưa có giá hợp lệ')}"></option>
-                    </select>
-                    <label>Số lượng</label>
-                    <input type="number" min="1" name="lines[__index__].quantity">
-                </div>
+                <tr class="invoice-line">
+                    <td class="invoice-row-number"></td>
+                    <td>
+                        <select name="lines[__index__].productId">
+                            <option value="">-- Chọn mặt hàng --</option>
+                            <option th:each="mh : ${matHangs}" th:value="${mh.maMatHang}"
+                                    th:attr="data-price=${giaMatHangs[mh.maMatHang]}"
+                                    th:text="${mh.tenMatHang + ' (còn ' + mh.quantityInStock + ')'}"></option>
+                        </select>
+                    </td>
+                    <td class="unit-price">0 đ</td>
+                    <td>
+                        <div class="quantity-stepper">
+                            <button type="button" class="quantity-minus" aria-label="Giảm số lượng">−</button>
+                            <input type="number" min="1" value="1" name="lines[__index__].quantity">
+                            <button type="button" class="quantity-plus" aria-label="Tăng số lượng">+</button>
+                        </div>
+                    </td>
+                    <td class="line-total">0 đ</td>
+                    <td><button type="button" class="remove-line" aria-label="Xóa dòng hàng">×</button></td>
+                </tr>
             </template>
             <script th:if="${!#lists.isEmpty(matHangs)}">
                 const lineTemplate = document.getElementById('line-template');
@@ -125,6 +168,49 @@
                 };
                 paymentMethod.addEventListener('change', updateCashInput);
                 updateCashInput();
+                const formatMoney = (value) => Math.max(0, value).toLocaleString('vi-VN') + ' đ';
+                const updateInvoiceTotals = () => {
+                    let subtotal = 0;
+                    lineContainer.querySelectorAll('.invoice-line').forEach((row) => {
+                        const select = row.querySelector('select');
+                        const quantityInput = row.querySelector('input[type="number"]');
+                        const selected = select.selectedOptions[0];
+                        const price = selected ? Number(selected.dataset.price || 0) : 0;
+                        const quantity = Math.max(0, Number(quantityInput.value || 0));
+                        row.querySelector('.unit-price').textContent = formatMoney(price);
+                        row.querySelector('.line-total').textContent = formatMoney(price * quantity);
+                        subtotal += price * quantity;
+                    });
+                    const points = Math.max(0, Number(pointsToRedeem.value || 0));
+                    const discount = points * 1000;
+                    document.getElementById('subtotal-amount').textContent = formatMoney(subtotal);
+                    document.getElementById('points-discount').textContent = '−' + formatMoney(discount);
+                    document.getElementById('grand-total').textContent = formatMoney(subtotal - discount);
+                };
+                const renumberLines = () => {
+                    lineContainer.querySelectorAll('.invoice-line').forEach((row, index) => {
+                        row.querySelector('.invoice-row-number').textContent = index + 1;
+                    });
+                };
+                const bindLineControls = (row) => {
+                    const quantityInput = row.querySelector('input[type="number"]');
+                    row.querySelector('select').addEventListener('change', updateInvoiceTotals);
+                    quantityInput.addEventListener('input', updateInvoiceTotals);
+                    row.querySelector('.quantity-minus').addEventListener('click', () => {
+                        quantityInput.value = Math.max(1, Number(quantityInput.value || 1) - 1);
+                        updateInvoiceTotals();
+                    });
+                    row.querySelector('.quantity-plus').addEventListener('click', () => {
+                        quantityInput.value = Math.max(1, Number(quantityInput.value || 1) + 1);
+                        updateInvoiceTotals();
+                    });
+                    row.querySelector('.remove-line').addEventListener('click', () => {
+                        row.remove();
+                        renumberLines();
+                        updateInvoiceTotals();
+                    });
+                };
+                lineContainer.querySelectorAll('.invoice-line').forEach(bindLineControls);
                 searchInput.addEventListener('input', () => {
                     const query = searchInput.value.trim().toLocaleLowerCase();
                     lineContainer.querySelectorAll('select').forEach((select) => {
@@ -140,7 +226,17 @@
                         input.name = input.name.replace('__index__', index);
                     });
                     lineContainer.appendChild(line);
+                    const row = lineContainer.querySelector('.invoice-line:last-child');
+                    bindLineControls(row);
+                    renumberLines();
+                    updateInvoiceTotals();
                 });
+                document.getElementById('use-all-points').addEventListener('click', () => {
+                    pointsToRedeem.value = pointsToRedeem.max || 0;
+                    updateInvoiceTotals();
+                });
+                pointsToRedeem.addEventListener('input', updateInvoiceTotals);
+                updateInvoiceTotals();
             </script>
         </section>
     </div>

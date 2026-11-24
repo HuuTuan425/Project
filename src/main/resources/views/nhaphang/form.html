@@ -4,72 +4,131 @@
 <body>
     <div th:replace="~{khachhang/layout :: page(~{::section})}">
         <section>
-            <div class="page-heading purchase-page-heading">
+            <div class="customer-form-header">
                 <div>
                     <h1>Lập đơn đặt hàng</h1>
+                    <p class="purchase-page-description">Đơn chờ giao chưa làm tăng tồn kho. Thủ kho sẽ ghi nhận số lượng thực nhận.</p>
                 </div>
+                <a class="customer-back-link" th:href="@{/nhap-hang}">
+                    <span aria-hidden="true">←</span> Quay lại danh sách
+                </a>
             </div>
-            <p>Đơn chờ giao chưa làm tăng tồn kho. Thủ kho sẽ ghi nhận số lượng thực nhận.</p>
             <p th:if="${errorMessage}" class="message error" th:text="${errorMessage}"></p>
             <p th:if="${#lists.isEmpty(suppliers)}" class="message error">
                 Chưa có nhà cung cấp. <a th:href="@{/nhap-hang/nha-cung-cap}">Thêm nhà cung cấp</a> trước.
             </p>
-            <form th:action="@{/nhap-hang}" th:object="${purchaseOrderForm}" method="post">
+            <form th:action="@{/nhap-hang}" th:object="${purchaseOrderForm}" method="post" class="purchase-form">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <div class="form-group">
-                    <label for="supplierId">Nhà cung cấp</label>
-                    <select id="supplierId" th:field="*{supplierId}" required>
-                        <option value="">-- Chọn nhà cung cấp --</option>
-                        <option th:each="supplier : ${suppliers}" th:value="${supplier.id}" th:text="${supplier.name}"></option>
-                    </select>
+                <div class="purchase-order-grid">
+                    <div class="form-group">
+                        <label for="supplierId">Nhà cung cấp <span class="required-mark">*</span></label>
+                        <select id="supplierId" th:field="*{supplierId}" required>
+                            <option value="">-- Chọn nhà cung cấp --</option>
+                            <option th:each="supplier : ${suppliers}" th:value="${supplier.id}" th:text="${supplier.name}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="expectedDeliveryDate">Ngày giao dự kiến</label>
+                        <input id="expectedDeliveryDate" type="date" th:field="*{expectedDeliveryDate}">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="expectedDeliveryDate">Ngày giao dự kiến</label>
-                    <input id="expectedDeliveryDate" type="date" th:field="*{expectedDeliveryDate}">
-                </div>
-                <div class="form-group">
+                <div class="form-group purchase-terms-group">
                     <label for="paymentTerms">Điều khoản đã thỏa thuận</label>
                     <textarea id="paymentTerms" th:field="*{paymentTerms}" maxlength="500"
                               placeholder="Ví dụ: thanh toán trong 30 ngày; giao hàng tại kho trung tâm"></textarea>
                 </div>
-                <div id="purchase-lines">
-                    <div class="purchase-line form-group" th:each="line, row : *{lines}">
-                        <label>Mặt hàng</label>
-                        <select th:field="*{lines[__${row.index}__].productId}">
-                            <option value="">-- Chọn mặt hàng --</option>
-                            <option th:each="mh : ${matHangs}" th:value="${mh.maMatHang}" th:text="${mh.tenMatHang}"></option>
-                        </select>
-                        <label>Số lượng</label>
-                        <input type="number" min="1" th:field="*{lines[__${row.index}__].quantity}">
-                        <label>Giá nhập mỗi sản phẩm</label>
-                        <input type="number" min="0.01" step="0.01" th:field="*{lines[__${row.index}__].unitCost}">
-                        <label>Ngày sản xuất (nếu có)</label>
-                        <input type="date" th:field="*{lines[__${row.index}__].manufactureDate}">
-                        <label>Hạn sử dụng (nếu có)</label>
-                        <input type="date" th:field="*{lines[__${row.index}__].expiryDate}">
+                <div class="purchase-lines-card">
+                    <div class="purchase-lines-heading">
+                        <h2>Danh sách mặt hàng</h2>
+                    </div>
+                    <div class="purchase-table-wrap">
+                        <table class="purchase-line-table">
+                            <thead>
+                                <tr>
+                                    <th>STT</th><th>Mặt hàng</th><th>Số lượng</th><th>Giá nhập</th>
+                                    <th>Ngày SX</th><th>Hạn SD</th><th>Thành tiền</th><th>Xóa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="purchase-lines">
+                                <tr class="purchase-line" th:each="line, row : *{lines}">
+                                    <td class="purchase-row-number" th:text="${row.count}">1</td>
+                                    <td>
+                                        <select th:field="*{lines[__${row.index}__].productId}">
+                                            <option value="">-- Chọn mặt hàng --</option>
+                                            <option th:each="mh : ${matHangs}" th:value="${mh.maMatHang}" th:text="${mh.tenMatHang}"></option>
+                                        </select>
+                                    </td>
+                                    <td><input type="number" min="1" value="1" th:field="*{lines[__${row.index}__].quantity}"></td>
+                                    <td><input type="number" min="0.01" step="0.01" th:field="*{lines[__${row.index}__].unitCost}" placeholder="0 đ"></td>
+                                    <td><input type="date" th:field="*{lines[__${row.index}__].manufactureDate}"></td>
+                                    <td><input type="date" th:field="*{lines[__${row.index}__].expiryDate}"></td>
+                                    <td class="purchase-line-total">0 đ</td>
+                                    <td><button type="button" class="purchase-remove-line" aria-label="Xóa dòng hàng">×</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button id="add-purchase-line" type="button" class="btn purchase-add-line">＋ Thêm mặt hàng</button>
+                    <div class="purchase-grand-total">
+                        <span>Tổng tiền dự kiến</span>
+                        <strong id="purchase-total">0 đ</strong>
                     </div>
                 </div>
                 <div class="purchase-form-actions">
-                    <button id="add-purchase-line" type="button" class="btn btn-primary">+ Thêm mặt hàng</button>
-                    <button type="submit" class="btn btn-success">Tạo đơn đặt hàng</button>
+                    <button type="submit" class="btn btn-primary">Tạo đơn đặt hàng</button>
                 </div>
             </form>
             <template id="purchase-line-template">
-                <div class="purchase-line form-group">
-                    <label>Mặt hàng</label>
-                    <select name="lines[__index__].productId">
-                        <option value="">-- Chọn mặt hàng --</option>
-                        <option th:each="mh : ${matHangs}" th:value="${mh.maMatHang}" th:text="${mh.tenMatHang}"></option>
-                    </select>
-                    <label>Số lượng</label><input type="number" min="1" name="lines[__index__].quantity">
-                    <label>Giá nhập mỗi sản phẩm</label><input type="number" min="0.01" step="0.01" name="lines[__index__].unitCost">
-                    <label>Ngày sản xuất (nếu có)</label><input type="date" name="lines[__index__].manufactureDate">
-                    <label>Hạn sử dụng (nếu có)</label><input type="date" name="lines[__index__].expiryDate">
-                </div>
+                <tr class="purchase-line">
+                    <td class="purchase-row-number"></td>
+                    <td>
+                        <select name="lines[__index__].productId">
+                            <option value="">-- Chọn mặt hàng --</option>
+                            <option th:each="mh : ${matHangs}" th:value="${mh.maMatHang}" th:text="${mh.tenMatHang}"></option>
+                        </select>
+                    </td>
+                    <td><input type="number" min="1" value="1" name="lines[__index__].quantity"></td>
+                    <td><input type="number" min="0.01" step="0.01" name="lines[__index__].unitCost" placeholder="0 đ"></td>
+                    <td><input type="date" name="lines[__index__].manufactureDate"></td>
+                    <td><input type="date" name="lines[__index__].expiryDate"></td>
+                    <td class="purchase-line-total">0 đ</td>
+                    <td><button type="button" class="purchase-remove-line" aria-label="Xóa dòng hàng">×</button></td>
+                </tr>
             </template>
             <script>
                 const container = document.getElementById('purchase-lines');
                 const template = document.getElementById('purchase-line-template');
+                const totalLabel = document.getElementById('purchase-total');
+
+                const formatMoney = (value) => Math.max(0, value).toLocaleString('vi-VN') + ' đ';
+                const renumberPurchaseLines = () => {
+                    container.querySelectorAll('.purchase-line').forEach((row, index) => {
+                        row.querySelector('.purchase-row-number').textContent = index + 1;
+                    });
+                };
+                const updatePurchaseTotal = () => {
+                    let total = 0;
+                    container.querySelectorAll('.purchase-line').forEach((row) => {
+                        const quantity = row.querySelector('input[name$=".quantity"], input[id^="quantity"]');
+                        const cost = row.querySelector('input[name$=".unitCost"], input[id^="unitCost"]');
+                        const quantityValue = Number(quantity?.value || 0);
+                        const costValue = Number(cost?.value || 0);
+                        const lineTotal = quantityValue * costValue;
+                        row.querySelector('.purchase-line-total').textContent = formatMoney(lineTotal);
+                        total += lineTotal;
+                    });
+                    totalLabel.textContent = formatMoney(total);
+                };
+                const bindPurchaseLine = (row) => {
+                    row.querySelectorAll('input').forEach((input) => input.addEventListener('input', updatePurchaseTotal));
+                    row.querySelector('.purchase-remove-line').addEventListener('click', () => {
+                        row.remove();
+                        renumberPurchaseLines();
+                        updatePurchaseTotal();
+                    });
+                };
+                container.querySelectorAll('.purchase-line').forEach(bindPurchaseLine);
+
                 document.getElementById('add-purchase-line').addEventListener('click', () => {
                     const index = container.querySelectorAll('.purchase-line').length;
                     const line = template.content.cloneNode(true);
@@ -77,7 +136,11 @@
                         input.name = input.name.replace('__index__', index);
                     });
                     container.appendChild(line);
+                    bindPurchaseLine(container.querySelector('.purchase-line:last-child'));
+                    renumberPurchaseLines();
+                    updatePurchaseTotal();
                 });
+                updatePurchaseTotal();
             </script>
         </section>
     </div>

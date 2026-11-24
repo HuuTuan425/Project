@@ -102,6 +102,8 @@ public class RetailSchemaMigration implements ApplicationRunner {
             dropUniqueIndex(statement, metadata, catalog, "chi_tiet_hoa_don", "uk_hoa_don_mat_hang");
 
             createPurchasingTables(statement);
+            ensureColumn(statement, metadata, catalog, "nha_cung_cap", "da_xoa_luc",
+                    "ALTER TABLE nha_cung_cap ADD COLUMN da_xoa_luc DATETIME NULL");
             ensureColumn(statement, metadata, catalog, "phieu_nhap", "ngay_giao_du_kien",
                     "ALTER TABLE phieu_nhap ADD COLUMN ngay_giao_du_kien DATE NULL");
             ensureColumn(statement, metadata, catalog, "phieu_nhap", "dieu_khoan_thanh_toan",

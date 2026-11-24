@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "nha_cung_cap")
@@ -33,6 +34,9 @@ public class Supplier {
     @Size(max = 255)
     @Column(name = "dia_chi", length = 255)
     private String address;
+
+    @Column(name = "da_xoa_luc")
+    private LocalDateTime deletedAt;
 
     public Long getId() {
         return id;
@@ -68,5 +72,17 @@ public class Supplier {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 }

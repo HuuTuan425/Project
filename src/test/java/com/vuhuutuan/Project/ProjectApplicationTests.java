@@ -320,8 +320,12 @@ class ProjectApplicationTests {
 						.session(session)
 						.param("_csrf", csrfToken))
 				.andExpect(status().is3xxRedirection());
-		assertTrue(supplierRepository.existsById(supplier.getId()),
-				"Suppliers with purchase-order history must not be deleted");
+		Supplier softDeletedWithHistory = supplierRepository.findById(supplier.getId()).orElseThrow();
+		assertTrue(softDeletedWithHistory.isDeleted(),
+				"Suppliers with purchase-order history must be soft deleted");
+		assertTrue(purchasingService.findSuppliers().stream()
+						.noneMatch(item -> item.getId().equals(supplier.getId())),
+				"Soft-deleted suppliers must leave the active supplier list");
 
 		Supplier unusedSupplier = new Supplier();
 		unusedSupplier.setName("Nhà cung cấp có thể xóa " + UUID.randomUUID());
@@ -332,7 +336,9 @@ class ProjectApplicationTests {
 						.param("_csrf", csrfToken))
 				.andExpect(status().is3xxRedirection())
 				.andExpect(redirectedUrl("/nhap-hang/nha-cung-cap"));
-		assertTrue(!supplierRepository.existsById(unusedSupplierId));
+		Supplier softDeletedUnused = supplierRepository.findById(unusedSupplierId).orElseThrow();
+		assertTrue(softDeletedUnused.isDeleted(),
+				"Unused suppliers must be soft deleted instead of physically removed");
 	}
 
 	@Test

@@ -28,15 +28,6 @@
                 <h1>Đăng nhập</h1>
                 <p>Đăng nhập để tiếp tục quản lý cửa hàng của bạn.</p>
             </div>
-            <p th:if="${param.error}" class="message error">Tên đăng nhập hoặc mật khẩu không đúng.</p>
-            <p th:if="${param.locked}" class="message error">Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.</p>
-            <p th:if="${param.deleted}" class="message error">Tài khoản đã bị xóa. Vui lòng liên hệ quản trị viên.</p>
-            <p th:if="${param.roleChanged}" class="message error">Quyền tài khoản vừa thay đổi. Vui lòng đăng nhập lại.</p>
-            <p th:if="${param.passwordChanged}" class="message error">Mật khẩu vừa được đặt lại. Vui lòng đăng nhập lại bằng mật khẩu mới.</p>
-            <p th:if="${passwordResetSuccess}" class="message success" th:text="${passwordResetSuccess}"></p>
-            <p th:if="${param.logout}" class="message success toast" role="status" aria-live="polite">
-                Bạn đã đăng xuất.
-            </p>
             <form th:action="@{/dang-nhap}" method="post" class="auth-form">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="form-group">
@@ -53,14 +44,55 @@
                         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3m-4 5v2"/></svg>
                         <input id="password" name="password" type="password" placeholder="Nhập mật khẩu"
                                autocomplete="current-password" required>
+                        <button type="button" class="login-password-toggle" aria-label="Hiện mật khẩu">
+                            <svg class="eye-off" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>
+                                <circle cx="12" cy="12" r="2.5"/>
+                                <path d="M3 3l18 18"/>
+                            </svg>
+                            <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>
+                                <circle cx="12" cy="12" r="2.5"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary auth-submit">Đăng nhập <span aria-hidden="true">→</span></button>
+                <div class="login-options">
+                    <label class="remember-login" for="remember-me">
+                        <input id="remember-me" name="remember-me" type="checkbox">
+                        <span>Ghi nhớ đăng nhập</span>
+                    </label>
+                    <a th:href="@{/quen-mat-khau}">Quên mật khẩu?</a>
+                </div>
+                <div class="login-error-slot" aria-live="polite">
+                    <p th:if="${param.error}" class="message error">Tên đăng nhập hoặc mật khẩu không đúng.</p>
+                    <p th:if="${param.locked}" class="message error">Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.</p>
+                    <p th:if="${param.deleted}" class="message error">Tài khoản đã bị xóa. Vui lòng liên hệ quản trị viên.</p>
+                    <p th:if="${param.roleChanged}" class="message error">Quyền tài khoản vừa thay đổi. Vui lòng đăng nhập lại.</p>
+                    <p th:if="${param.passwordChanged}" class="message error">Mật khẩu vừa được đặt lại. Vui lòng đăng nhập lại bằng mật khẩu mới.</p>
+                    <p th:if="${passwordResetSuccess}" class="message success" th:text="${passwordResetSuccess}"></p>
+                </div>
+                <button type="submit" class="btn btn-primary auth-submit">
+                    <span>Đăng nhập</span>
+                    <span aria-hidden="true">→</span>
+                </button>
             </form>
-            <p class="auth-footer"><a th:href="@{/quen-mat-khau}">Quên mật khẩu?</a></p>
+            <p th:if="${param.logout}" class="message success toast" role="status" aria-live="polite">
+                Bạn đã đăng xuất.
+            </p>
             <p class="auth-footer">Hệ thống quản lý bán hàng <span aria-hidden="true">•</span> An toàn và tiện lợi</p>
         </section>
     </main>
+    <script>
+        const loginPasswordInput = document.getElementById('password');
+        const loginPasswordToggle = document.querySelector('.login-password-toggle');
+        loginPasswordToggle.addEventListener('click', () => {
+            const showPassword = loginPasswordInput.type === 'password';
+            loginPasswordInput.type = showPassword ? 'text' : 'password';
+            loginPasswordToggle.classList.toggle('is-visible', showPassword);
+            loginPasswordToggle.setAttribute('aria-label', showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu');
+        });
+    </script>
     <script th:if="${param.logout}">
         const logoutToast = document.querySelector('.toast');
         window.setTimeout(() => {

@@ -225,7 +225,9 @@ public class HoaDonController {
 
     private void addInvoiceOptions(Model model) {
         List<InvoiceLineForm> lines = new ArrayList<>();
-        lines.add(new InvoiceLineForm());
+        InvoiceLineForm initialLine = new InvoiceLineForm();
+        initialLine.setQuantity(1);
+        lines.add(initialLine);
         InvoiceForm form = (InvoiceForm) model.getAttribute("invoiceForm");
         if (form == null) {
             form = new InvoiceForm();

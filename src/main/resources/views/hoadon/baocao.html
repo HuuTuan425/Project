@@ -34,28 +34,36 @@
                 </div>
                 <div class="report-stat-grid">
                     <article class="report-stat-card is-revenue">
-                        <span class="report-stat-icon" aria-hidden="true">💰</span>
+                        <span class="report-stat-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v10M15 9.5c-.5-1-1.5-1.5-3-1.5-1.7 0-3 1-3 2.3 0 3.4 6 1.4 6 4.4 0 1.3-1.3 2.3-3 2.3-1.5 0-2.5-.5-3-1.5"/></svg>
+                        </span>
                         <div>
                             <p>Tổng doanh thu</p>
                             <strong th:text="${#numbers.formatDecimal(summary.revenue, 0, 'COMMA', 0, 'POINT') + ' đ'}"></strong>
                         </div>
                     </article>
                     <article class="report-stat-card is-invoices">
-                        <span class="report-stat-icon" aria-hidden="true">🧾</span>
+                        <span class="report-stat-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+                        </span>
                         <div>
                             <p>Số hóa đơn</p>
                             <strong th:text="${summary.invoiceCount}"></strong>
                         </div>
                     </article>
                     <article class="report-stat-card is-cost">
-                        <span class="report-stat-icon" aria-hidden="true">📦</span>
+                        <span class="report-stat-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="M3 8v9l9 5 9-5V8M12 13v9"/></svg>
+                        </span>
                         <div>
                             <p>Tổng giá vốn</p>
                             <strong th:text="${#numbers.formatDecimal(summary.cost, 0, 'COMMA', 0, 'POINT') + ' đ'}"></strong>
                         </div>
                     </article>
-                    <article class="report-stat-card is-profit">
-                        <span class="report-stat-icon" aria-hidden="true">📈</span>
+                    <article th:class="${summary.grossProfit.compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'report-stat-card is-profit' : 'report-stat-card is-profit is-negative'}">
+                        <span class="report-stat-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M3 20V6M3 20h18"/><path d="m6 16 4-4 3 3 6-7"/><path d="M15 8h4v4"/></svg>
+                        </span>
                         <div>
                             <p>Lợi nhuận gộp</p>
                             <strong th:text="${#numbers.formatDecimal(summary.grossProfit, 0, 'COMMA', 0, 'POINT') + ' đ'}"></strong>
@@ -72,7 +80,7 @@
                 </div>
                 <div class="report-table-heading">
                     <h2>Doanh thu theo thu ngân</h2>
-                    <a class="btn btn-outline-primary" th:href="@{/hoa-don}">Xem lịch sử hóa đơn <span aria-hidden="true">→</span></a>
+                    <a class="btn btn-outline-primary" th:href="@{/hoa-don}">Xem lịch sử hóa đơn <span class="history-arrow" aria-hidden="true">→</span></a>
                 </div>
                 <div class="report-table-scroll">
                     <table class="report-table align-middle">

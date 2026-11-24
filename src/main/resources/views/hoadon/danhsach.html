@@ -38,6 +38,7 @@
                     </select>
                 </div>
                 <button type="submit" class="btn btn-primary">Lọc hóa đơn</button>
+                <a th:href="@{/hoa-don}" class="invoice-reset-button" title="Xóa bộ lọc" aria-label="Xóa bộ lọc">↻</a>
             </form>
             <div th:if="${totalInvoices == 0}" class="invoice-no-results" role="status" aria-live="polite">
                 <strong th:if="${#strings.isEmpty(q) and tuNgay == null and denNgay == null and #strings.isEmpty(trangThai)}">
@@ -73,7 +74,7 @@
                             <td th:text="${hd.khachHang != null ? hd.khachHang.hoTen : 'Khách lẻ'}"></td>
                             <td th:text="${hd.thoiGianThanhToan != null ? #temporals.format(hd.thoiGianThanhToan, 'dd/MM/yyyy HH:mm') : '-'}"></td>
                             <td class="text-center" th:text="${hd.chiTiet != null ? #lists.size(hd.chiTiet) : 0}"></td>
-                            <td th:text="${hd.tongTien != null ? #numbers.formatDecimal(hd.tongTien, 0, 'COMMA', 0, 'POINT') + ' đ' : '-'}"></td>
+                            <td class="invoice-total-cell" th:text="${hd.tongTien != null ? #numbers.formatDecimal(hd.tongTien, 0, 'COMMA', 0, 'POINT') + ' đ' : '-'}"></td>
                             <td class="text-center">
                                 <span th:class="${hd.cancelled ? 'invoice-badge is-cancelled' : 'invoice-badge is-paid'}"
                                       th:text="${hd.cancelled ? 'Đã hủy' : 'Đã thanh toán'}"></span>
@@ -81,7 +82,11 @@
                             <td class="text-center">
                                 <a class="btn btn-sm btn-outline-primary"
                                    th:href="@{/hoa-don/{id}(id=${hd.maHoaDon})}">
-                                    <span aria-hidden="true">👁️</span> Xem
+                                    <svg class="invoice-view-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>
+                                        <circle cx="12" cy="12" r="2.5"/>
+                                    </svg>
+                                    Xem
                                 </a>
                             </td>
                         </tr>

@@ -159,7 +159,8 @@ public class PurchasingController {
     public String deleteSupplier(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
             purchasingService.deleteSupplier(id);
-            redirectAttributes.addFlashAttribute("successMessage", "Đã xóa nhà cung cấp.");
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Đã xóa mềm nhà cung cấp; lịch sử phiếu nhập vẫn được giữ.");
         } catch (IllegalStateException | java.util.NoSuchElementException exception) {
             redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
         }

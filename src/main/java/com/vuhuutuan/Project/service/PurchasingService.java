@@ -59,7 +59,7 @@ public class PurchasingService {
     }
 
     public List<Supplier> findSuppliers() {
-        return supplierRepository.findAllByOrderByNameAsc();
+        return supplierRepository.findAllByDeletedAtIsNullOrderByNameAsc();
     }
 
     public List<SupplierProposal> findSupplierProposals() {
@@ -152,8 +152,12 @@ public class PurchasingService {
     }
 
     public Supplier findSupplier(Long supplierId) {
-        return supplierRepository.findById(supplierId)
+        Supplier supplier = supplierRepository.findById(supplierId)
                 .orElseThrow(() -> new NoSuchElementException("Không tìm thấy nhà cung cấp."));
+        if (supplier.isDeleted()) {
+            throw new NoSuchElementException("Nhà cung cấp đã được xóa.");
+        }
+        return supplier;
     }
 
     @Transactional
@@ -169,12 +173,8 @@ public class PurchasingService {
     @Transactional
     public void deleteSupplier(Long supplierId) {
         Supplier supplier = findSupplier(supplierId);
-        if (purchaseOrderRepository.existsBySupplier_Id(supplierId)) {
-            throw new IllegalStateException(
-                    "Không thể xóa nhà cung cấp đã có phiếu nhập. Hãy giữ lại để bảo toàn lịch sử."
-            );
-        }
-        supplierRepository.delete(supplier);
+        supplier.setDeletedAt(LocalDateTime.now());
+        supplierRepository.save(supplier);
     }
 
     @Transactional

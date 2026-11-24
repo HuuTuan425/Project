@@ -155,13 +155,11 @@
                                     <div class="supplier-actions">
                                         <a class="btn btn-outline-primary"
                                            th:href="@{/nhap-hang/nha-cung-cap/{id}/sua(id=${supplier.id})}">Sửa</a>
-                                        <form class="supplier-action-form"
-                                              th:action="@{/nhap-hang/nha-cung-cap/{id}/xoa(id=${supplier.id})}"
-                                              method="post"
-                                              onsubmit="return confirm('Bạn có chắc muốn xóa nhà cung cấp này?')">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                            <button type="submit" class="btn btn-outline-danger">Xóa</button>
-                                        </form>
+                                        <button type="button" class="btn btn-outline-danger supplier-delete-trigger"
+                                                th:attr="data-delete-url=@{/nhap-hang/nha-cung-cap/{id}/xoa(id=${supplier.id})},
+                                                         data-supplier-name=${supplier.name}">
+                                            Xóa
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -174,6 +172,46 @@
                     </table>
                 </div>
             </details>
+            <dialog class="confirmation-dialog" id="supplier-delete-confirmation"
+                    aria-labelledby="supplier-delete-title"
+                    aria-describedby="supplier-delete-description">
+                <form method="dialog" class="confirmation-dialog-dismiss">
+                    <button type="submit" class="confirmation-close" aria-label="Đóng">×</button>
+                </form>
+                <div class="confirmation-dialog-icon" aria-hidden="true">!</div>
+                <h2 id="supplier-delete-title">Xác nhận xóa nhà cung cấp?</h2>
+                <p id="supplier-delete-description">
+                    Nhà cung cấp <strong id="supplier-delete-name"></strong> sẽ được xóa mềm khỏi danh sách.
+                    Dữ liệu nhà cung cấp và lịch sử phiếu nhập vẫn được giữ nguyên.
+                </p>
+                <div class="confirmation-dialog-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-supplier-delete">Hủy</button>
+                    <button type="button" class="btn btn-outline-danger" id="confirm-supplier-delete">Xóa nhà cung cấp</button>
+                </div>
+            </dialog>
+            <form id="supplier-delete-form" method="post" hidden>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            </form>
+            <script>
+                const supplierDeleteDialog = document.getElementById('supplier-delete-confirmation');
+                const supplierDeleteForm = document.getElementById('supplier-delete-form');
+                const supplierDeleteName = document.getElementById('supplier-delete-name');
+
+                document.querySelectorAll('.supplier-delete-trigger').forEach((button) => {
+                    button.addEventListener('click', () => {
+                        supplierDeleteForm.action = button.dataset.deleteUrl;
+                        supplierDeleteName.textContent = button.dataset.supplierName;
+                        supplierDeleteDialog.showModal();
+                    });
+                });
+
+                document.getElementById('cancel-supplier-delete').addEventListener('click', () => {
+                    supplierDeleteDialog.close();
+                });
+                document.getElementById('confirm-supplier-delete').addEventListener('click', () => {
+                    supplierDeleteForm.requestSubmit();
+                });
+            </script>
         </section>
     </div>
 </body>

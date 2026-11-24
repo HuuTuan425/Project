@@ -66,6 +66,15 @@
         </aside>
         <div class="app-shell">
             <header class="app-topbar">
+                <div class="app-topbar-title"
+                     th:text="${currentPath == '/hoa-don/lap' ? 'Lập hóa đơn' :
+                              #strings.startsWith(currentPath, '/hoa-don/') ? 'Hóa đơn' :
+                              #strings.startsWith(currentPath, '/khach-hang') ? 'Khách hàng' :
+                              #strings.startsWith(currentPath, '/mat-hang') ? 'Mặt hàng' :
+                              #strings.startsWith(currentPath, '/nhap-hang') ? 'Nhập kho' :
+                               #strings.startsWith(currentPath, '/tai-khoan') ? 'Tài khoản' :
+                               currentPath == '/hoa-don' ? 'Lịch sử hóa đơn' :
+                               currentPath == '/hoa-don/bao-cao' ? 'Báo cáo doanh thu' : 'Tổng quan'}"></div>
                 <div class="account-summary">
                     <strong th:text="${currentUsername}"></strong>
                     <span class="account-role" th:if="${isAdmin}">Quản trị viên</span>

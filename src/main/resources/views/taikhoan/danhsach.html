@@ -11,7 +11,6 @@
                 <h1>Tạo tài khoản mới</h1>
             </div>
             <form th:action="@{/tai-khoan}" th:object="${newAccount}" method="post" class="account-create-form">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="account-create-grid">
                     <div class="form-group">
                         <label for="username">Tên đăng nhập</label>
@@ -133,7 +132,6 @@
                                         <form th:if="${account.username != currentUsername}"
                                               class="account-status-form"
                                               th:action="@{/tai-khoan/{id}/trang-thai(id=${account.id})}" method="post">
-                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                                         <input type="hidden" name="enabled" th:value="${!account.enabled}">
                                         <button type="submit"
                                                 th:class="${account.enabled ? 'btn btn-outline-danger btn-small' : 'btn btn-outline-success btn-small'}"
@@ -144,7 +142,6 @@
                                         <form th:if="${account.username != currentUsername}"
                                               th:action="@{/tai-khoan/{id}/dat-lai-mat-khau(id=${account.id})}"
                                               method="post">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                                             <button type="submit" class="btn btn-secondary btn-small">Gửi link đặt lại mật khẩu</button>
                                         </form>
                                         <button th:if="${account.username != currentUsername}" type="button"
@@ -205,7 +202,6 @@
                 </div>
             </dialog>
             <form id="account-delete-form" method="post" hidden>
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             </form>
             <script>
                 const accountDeleteDialog = document.getElementById('account-delete-confirmation');

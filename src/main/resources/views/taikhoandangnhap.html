@@ -29,7 +29,6 @@
                 <p>Đăng nhập để tiếp tục quản lý cửa hàng của bạn.</p>
             </div>
             <form th:action="@{/dang-nhap}" method="post" class="auth-form">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="form-group">
                     <label for="username">Tên đăng nhập</label>
                     <div class="auth-input-wrap">

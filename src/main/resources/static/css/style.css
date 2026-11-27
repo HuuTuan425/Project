@@ -2064,7 +2064,27 @@ body.auth-page {
 }
 
 .product-table {
-    min-width: 1060px;
+    min-width: 1220px;
+}
+
+.product-expiry-note {
+    color: var(--color-muted);
+    font-size: 0.875rem;
+}
+
+.product-expiry {
+    white-space: nowrap;
+}
+
+.product-expiry-days {
+    display: block;
+    color: #475569;
+    font-size: 0.8rem;
+}
+
+.product-expiry-days.is-expired {
+    color: #991b1b;
+    font-weight: 700;
 }
 
 .product-delete-form {

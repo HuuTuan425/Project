@@ -1,7 +1,7 @@
 package com.vuhuutuan.Project.model;
 public enum LoaiKhachHang {
-    MUA_LE("Khách mua lẻ"),
-    MUA_BUON("Khách mua buôn");
+    MUA_LE("Khách hàng thông thường"),
+    MUA_BUON("Khách hàng thành viên");
 
     private final String displayName;
 

@@ -13,7 +13,6 @@
             <form th:action="${matHang.maMatHang == null ? '/mat-hang/them' : '/mat-hang/sua/' + matHang.maMatHang}"
                   th:object="${matHang}" method="post" class="customer-form product-form">
                 <input type="hidden" th:field="*{maMatHang}">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div th:if="${#fields.hasGlobalErrors()}" class="message error" th:each="error : ${#fields.globalErrors()}" th:text="${error}"></div>
                 <div class="customer-form-grid product-form-grid">
                     <div class="form-group">

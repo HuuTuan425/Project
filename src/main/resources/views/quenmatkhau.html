@@ -19,7 +19,6 @@
                 Nếu email khớp với một tài khoản đang hoạt động, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.
             </p>
             <form th:unless="${requestSubmitted}" th:action="@{/quen-mat-khau}" method="post" class="auth-form">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="form-group">
                     <label for="email">Email</label>
                     <div class="auth-input-wrap">

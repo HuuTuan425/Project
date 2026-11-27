@@ -72,6 +72,11 @@ trò được hỗ trợ. Tài khoản nhân viên cũ có vai trò `NHAN_VIEN` 
 Sau khi đăng nhập, dùng menu để quản lý mặt hàng, lập hóa đơn, xem lịch sử hóa
 đơn và mở báo cáo doanh thu. Báo cáo có thể lọc theo ngày.
 
+Danh sách mặt hàng hiển thị hạn sử dụng gần nhất của các lô còn hàng và số ngày
+còn lại. Hạn này lấy từ từng lô nhập, không phải hạn trong hồ sơ mặt hàng.
+Nếu có nhiều lô, các lô khác có thể có hạn khác; lô không ghi hạn không có ngày
+để tính. Ngày hết hạn vẫn được tính là ngày còn bán được.
+
 Hóa đơn lưu giá bán và giá vốn của lô hàng tại thời điểm tạo hóa đơn. Trước lần
 khởi động đầu tiên sau khi cập nhật, hãy sao lưu cơ sở dữ liệu. Theo yêu cầu,
 số lượng mặt hàng hiện có sẽ được đặt về 0, cột cũ `trang_thai` sẽ bị xóa và
@@ -88,6 +93,12 @@ Quản trị viên và nhân viên mua hàng tạo đơn đặt hàng; thủ kho
 thực nhận. Các lô hàng được bán theo thứ tự hạn sử dụng gần nhất
 trước; lô đã hết hạn không thể bán. Số lượng tồn kho chỉ thay đổi sau khi người
 dùng có quyền xác nhận đã nhận hàng.
+
+Ứng dụng tự động kiểm tra các lô đã hết hạn khi khởi động và sau mỗi phút
+trong khi đang chạy. Từ ngày sau hạn sử dụng, số lượng còn lại của lô được trừ
+khỏi tồn kho và đặt về 0; lô và lịch sử giao dịch vẫn được giữ lại. Lô không có
+hạn sử dụng không bị tự động trừ. Việc trừ trên hệ thống không đồng nghĩa hàng
+thực tế đã được tiêu hủy; nhân viên cần kiểm tra và xử lý hàng ngoài kho.
 
 Hóa đơn hỗ trợ các phương thức thanh toán tiền mặt, chuyển khoản ngân hàng,
 VietQR, MoMo và ZaloPay dưới dạng thông tin ghi nhận. Các phương thức điện tử

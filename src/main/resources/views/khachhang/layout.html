@@ -84,8 +84,7 @@
                     <span class="account-role" th:if="${isPurchasing}">Nhân viên mua hàng</span>
                     <span class="account-role" th:if="${isManager}">Quản lý cửa hàng</span>
                 </div>
-                <form th:action="@{/logout}" method="post">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <form th:action="@{/dang-xuat}" method="post">
                     <button type="submit" class="btn btn-outline-danger">Đăng xuất</button>
                 </form>
             </header>

@@ -6,9 +6,11 @@ import com.vuhuutuan.Project.model.PurchaseOrderStatus;
 import com.vuhuutuan.Project.model.Supplier;
 import com.vuhuutuan.Project.model.SupplierProposal;
 import com.vuhuutuan.Project.repository.MatHangRepository;
+import com.vuhuutuan.Project.model.SessionUser;
+import com.vuhuutuan.Project.config.SessionAuthInterceptor;
 import com.vuhuutuan.Project.service.PurchasingService;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.data.domain.Page;
@@ -42,8 +44,8 @@ public class PurchasingController {
     }
 
     @GetMapping("/nha-cung-cap")
-    public String suppliers(Model model, Authentication authentication) {
-        populateSupplierPage(model, authentication);
+    public String suppliers(Model model, HttpSession session) {
+        populateSupplierPage(model, session);
         return "nhaphang/nhacungcap";
     }
 
@@ -51,7 +53,7 @@ public class PurchasingController {
     public String editSupplier(
             @PathVariable Long id,
             Model model,
-            Authentication authentication,
+            HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
         try {
@@ -62,7 +64,7 @@ public class PurchasingController {
             form.setPhone(supplier.getPhone());
             form.setEmail(supplier.getEmail());
             form.setAddress(supplier.getAddress());
-            populateSupplierPage(model, authentication);
+            populateSupplierPage(model, session);
             model.addAttribute("supplierForm", form);
             return "nhaphang/nhacungcap";
         } catch (java.util.NoSuchElementException exception) {
@@ -76,11 +78,11 @@ public class PurchasingController {
             @Valid @ModelAttribute("supplierForm") SupplierForm form,
             BindingResult bindingResult,
             Model model,
-            Authentication authentication,
+            HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
         if (bindingResult.hasErrors()) {
-            populateSupplierPage(model, authentication);
+            populateSupplierPage(model, session);
             return "nhaphang/nhacungcap";
         }
         Supplier supplier = new Supplier();
@@ -107,11 +109,11 @@ public class PurchasingController {
             @Valid @ModelAttribute("supplierProposalForm") SupplierProposalForm form,
             BindingResult bindingResult,
             Model model,
-            Authentication authentication,
+            HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
         if (bindingResult.hasErrors()) {
-            populateSupplierPage(model, authentication);
+            populateSupplierPage(model, session);
             return "nhaphang/nhacungcap";
         }
         SupplierProposal proposal = new SupplierProposal();
@@ -119,7 +121,7 @@ public class PurchasingController {
         proposal.setPhone(form.getPhone());
         proposal.setEmail(form.getEmail());
         proposal.setAddress(form.getAddress());
-        purchasingService.createSupplierProposal(proposal, authentication.getName());
+        purchasingService.createSupplierProposal(proposal, currentUsername(session));
         redirectAttributes.addFlashAttribute(
                 "successMessage", "Đã gửi đề xuất nhà cung cấp để quản trị viên xem xét.");
         return "redirect:/nhap-hang/nha-cung-cap";
@@ -128,11 +130,11 @@ public class PurchasingController {
     @PostMapping("/nha-cung-cap/de-xuat/{id}/duyet")
     public String approveSupplierProposal(
             @PathVariable Long id,
-            Authentication authentication,
+            HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
         try {
-            purchasingService.approveSupplierProposal(id, authentication.getName());
+            purchasingService.approveSupplierProposal(id, currentUsername(session));
             redirectAttributes.addFlashAttribute("successMessage", "Đã duyệt và thêm nhà cung cấp.");
         } catch (IllegalStateException | java.util.NoSuchElementException exception) {
             redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
@@ -143,11 +145,11 @@ public class PurchasingController {
     @PostMapping("/nha-cung-cap/de-xuat/{id}/tu-choi")
     public String rejectSupplierProposal(
             @PathVariable Long id,
-            Authentication authentication,
+            HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
         try {
-            purchasingService.rejectSupplierProposal(id, authentication.getName());
+            purchasingService.rejectSupplierProposal(id, currentUsername(session));
             redirectAttributes.addFlashAttribute("successMessage", "Đã từ chối đề xuất nhà cung cấp.");
         } catch (IllegalStateException | java.util.NoSuchElementException exception) {
             redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
@@ -167,7 +169,7 @@ public class PurchasingController {
         return "redirect:/nhap-hang/nha-cung-cap";
     }
 
-    private void populateSupplierPage(Model model, Authentication authentication) {
+    private void populateSupplierPage(Model model, HttpSession session) {
         model.addAttribute("suppliers", purchasingService.findSuppliers());
         if (!model.containsAttribute("supplierForm")) {
             model.addAttribute("supplierForm", new SupplierForm());
@@ -175,31 +177,38 @@ public class PurchasingController {
         if (!model.containsAttribute("supplierProposalForm")) {
             model.addAttribute("supplierProposalForm", new SupplierProposalForm());
         }
-        if (isAdmin(authentication) || isPurchasing(authentication)) {
+        if (isAdmin(session) || isPurchasing(session)) {
             model.addAttribute("supplierProposals", purchasingService.findSupplierProposals());
-        } else if (isWarehouse(authentication)) {
+        } else if (isWarehouse(session)) {
             model.addAttribute("supplierProposals",
-                    purchasingService.findSupplierProposals(authentication.getName()));
+                    purchasingService.findSupplierProposals(currentUsername(session)));
         } else {
             model.addAttribute("supplierProposals", List.of());
         }
     }
 
-    private boolean isAdmin(Authentication authentication) {
-        return hasRole(authentication, "ROLE_ADMIN");
+    private boolean isAdmin(HttpSession session) {
+        SessionUser user = getUser(session);
+        return user != null && user.isAdmin();
     }
 
-    private boolean isWarehouse(Authentication authentication) {
-        return hasRole(authentication, "ROLE_WAREHOUSE");
+    private boolean isWarehouse(HttpSession session) {
+        SessionUser user = getUser(session);
+        return user != null && user.isWarehouse();
     }
 
-    private boolean isPurchasing(Authentication authentication) {
-        return hasRole(authentication, "ROLE_PURCHASING");
+    private boolean isPurchasing(HttpSession session) {
+        SessionUser user = getUser(session);
+        return user != null && user.isPurchasing();
     }
 
-    private boolean hasRole(Authentication authentication, String role) {
-        return authentication != null && authentication.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals(role));
+    private SessionUser getUser(HttpSession session) {
+        return (SessionUser) session.getAttribute(SessionAuthInterceptor.SESSION_USER_ATTRIBUTE);
+    }
+
+    private String currentUsername(HttpSession session) {
+        SessionUser user = getUser(session);
+        return user == null ? "" : user.username();
     }
 
     @GetMapping
@@ -294,12 +303,12 @@ public class PurchasingController {
     @PostMapping
     public String create(
             @ModelAttribute("purchaseOrderForm") PurchaseOrderForm form,
-            Authentication authentication,
+            HttpSession session,
             Model model,
             RedirectAttributes redirectAttributes
     ) {
         try {
-            Long creatorId = purchasingService.findAccountId(authentication.getName());
+            Long creatorId = purchasingService.findAccountId(currentUsername(session));
             var purchaseOrder = purchasingService.createDraft(
                     form.getSupplierId(), creatorId, form.getExpectedDeliveryDate(),
                     form.getPaymentTerms(), form.getLines());
@@ -317,13 +326,12 @@ public class PurchasingController {
     public String detail(
             @PathVariable Long id,
             Model model,
-            Authentication authentication,
+            HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
         try {
             model.addAttribute("purchaseOrder", purchasingService.findPurchaseOrder(id));
-            model.addAttribute("canReceiveOrders", hasRole(authentication, "ROLE_ADMIN")
-                    || hasRole(authentication, "ROLE_WAREHOUSE"));
+            model.addAttribute("canReceiveOrders", isAdmin(session) || isWarehouse(session));
             model.addAttribute("today", LocalDate.now());
             return "nhaphang/chitiet";
         } catch (java.util.NoSuchElementException exception) {

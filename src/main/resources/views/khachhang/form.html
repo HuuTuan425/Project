@@ -13,7 +13,6 @@
 
             <form th:action="${khachHang.maKhachHang != null} ? @{/khach-hang/sua} : @{/khach-hang/them}"
                   th:object="${khachHang}" method="post" class="customer-form">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 
                 <!-- Bắt buộc phải có để lưu mã khi sửa -->
                 <input type="hidden" th:field="*{maKhachHang}">

@@ -2,6 +2,8 @@ package com.vuhuutuan.Project.controller;
 
 import com.vuhuutuan.Project.model.KhachHang;
 import com.vuhuutuan.Project.model.LoaiKhachHang;
+import com.vuhuutuan.Project.model.SessionUser;
+import com.vuhuutuan.Project.config.SessionAuthInterceptor;
 import com.vuhuutuan.Project.service.KhachHangService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +14,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.validation.BindingResult;
-import org.springframework.security.core.Authentication;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Arrays;
@@ -79,20 +81,20 @@ public class KhachHangController {
     public String them(
             @Valid @ModelAttribute("khachHang") KhachHang khachHang,
             BindingResult bindingResult,
-            Authentication authentication,
+            HttpSession session,
             Model model,
             RedirectAttributes redirectAttributes
     ) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("loaiKhachHangs", Arrays.asList(LoaiKhachHang.values()));
-            model.addAttribute("fromSale", isCashier(authentication));
+            model.addAttribute("fromSale", isCashier(session));
             return "khachhang/form";
         }
         khachHang.setMaKhachHang(null);
         khachHang.setDiemThuong(0);
         khachHangService.save(khachHang);
         redirectAttributes.addFlashAttribute("successMessage", "Đã thêm khách hàng.");
-        if (isCashier(authentication)) {
+        if (isCashier(session)) {
             return "redirect:/hoa-don/lap?khachHangId=" + khachHang.getMaKhachHang();
         }
         return "redirect:/khach-hang";
@@ -127,8 +129,8 @@ public class KhachHangController {
         return "redirect:/khach-hang";
     }
 
-    private boolean isCashier(Authentication authentication) {
-        return authentication.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals("ROLE_CASHIER"));
+    private boolean isCashier(HttpSession session) {
+        SessionUser user = (SessionUser) session.getAttribute(SessionAuthInterceptor.SESSION_USER_ATTRIBUTE);
+        return user != null && user.isCashier();
     }
 }

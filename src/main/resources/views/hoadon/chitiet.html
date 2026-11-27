@@ -109,7 +109,6 @@
             <form th:if="${(isAdmin or isManager) and !hoaDon.cancelled}"
                   class="invoice-cancel-form"
                   th:action="@{/hoa-don/{id}/huy(id=${hoaDon.maHoaDon})}" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="form-group">
                     <label for="reason">Lý do hủy hóa đơn</label>
                     <input id="reason" type="text" name="reason" maxlength="500" required>

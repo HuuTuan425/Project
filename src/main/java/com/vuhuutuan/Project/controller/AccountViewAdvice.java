@@ -1,6 +1,8 @@
 package com.vuhuutuan.Project.controller;
 
-import org.springframework.security.core.Authentication;
+import com.vuhuutuan.Project.config.SessionAuthInterceptor;
+import com.vuhuutuan.Project.model.SessionUser;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -9,33 +11,39 @@ import jakarta.servlet.http.HttpServletRequest;
 @ControllerAdvice(annotations = Controller.class)
 public class AccountViewAdvice {
     @ModelAttribute("isAdmin")
-    public boolean isAdmin(Authentication authentication) {
-        return hasRole(authentication, "ROLE_ADMIN");
+    public boolean isAdmin(HttpSession session) {
+        SessionUser user = getUser(session);
+        return user != null && user.isAdmin();
     }
 
     @ModelAttribute("isCashier")
-    public boolean isCashier(Authentication authentication) {
-        return hasRole(authentication, "ROLE_CASHIER");
+    public boolean isCashier(HttpSession session) {
+        SessionUser user = getUser(session);
+        return user != null && user.isCashier();
     }
 
     @ModelAttribute("isWarehouse")
-    public boolean isWarehouse(Authentication authentication) {
-        return hasRole(authentication, "ROLE_WAREHOUSE");
+    public boolean isWarehouse(HttpSession session) {
+        SessionUser user = getUser(session);
+        return user != null && user.isWarehouse();
     }
 
     @ModelAttribute("isPurchasing")
-    public boolean isPurchasing(Authentication authentication) {
-        return hasRole(authentication, "ROLE_PURCHASING");
+    public boolean isPurchasing(HttpSession session) {
+        SessionUser user = getUser(session);
+        return user != null && user.isPurchasing();
     }
 
     @ModelAttribute("isManager")
-    public boolean isManager(Authentication authentication) {
-        return hasRole(authentication, "ROLE_MANAGER");
+    public boolean isManager(HttpSession session) {
+        SessionUser user = getUser(session);
+        return user != null && user.isManager();
     }
 
     @ModelAttribute("currentUsername")
-    public String currentUsername(Authentication authentication) {
-        return authentication == null ? "" : authentication.getName();
+    public String currentUsername(HttpSession session) {
+        SessionUser user = getUser(session);
+        return user == null ? "" : user.username();
     }
 
     @ModelAttribute("currentPath")
@@ -43,8 +51,7 @@ public class AccountViewAdvice {
         return request.getRequestURI();
     }
 
-    private boolean hasRole(Authentication authentication, String role) {
-        return authentication != null && authentication.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals(role));
+    private SessionUser getUser(HttpSession session) {
+        return (SessionUser) session.getAttribute(SessionAuthInterceptor.SESSION_USER_ATTRIBUTE);
     }
 }

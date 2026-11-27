@@ -38,7 +38,6 @@
             <div class="purchase-receive-actions">
                 <form th:if="${canReceiveOrders and purchaseOrder.status.name() != 'RECEIVED'}"
                       th:action="@{/nhap-hang/{id}/nhan(id=${purchaseOrder.id})}" method="post">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <div class="purchase-line form-group" th:each="line, row : ${purchaseOrder.lines}">
                         <label th:for="${'received-' + row.index}"
                                th:text="${line.product.tenMatHang + ' — số lượng thực nhận'}"></label>

@@ -934,6 +934,18 @@ class ProjectApplicationTests {
 	}
 
 	@Test
+	void employeeCanLogoutFromAnyPage() throws Exception {
+		AppUser employee = createAccount(AccountRole.WAREHOUSE);
+		MockHttpSession session = login(employee.getUsername());
+
+		mockMvc.perform(post("/dang-xuat").session(session))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/dang-nhap?logout"));
+
+		assertTrue(session.isInvalid());
+	}
+
+	@Test
 	void employeeCanOpenProductInvoiceHistoryAndReportPages() throws Exception {
 		AppUser employee = createAccount(AccountRole.CASHIER);
 		MockHttpSession session = login(employee.getUsername());

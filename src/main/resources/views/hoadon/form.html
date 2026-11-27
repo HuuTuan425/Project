@@ -26,7 +26,6 @@
 
             <form th:if="${!#lists.isEmpty(matHangs)}"
                   th:action="@{/hoa-don/lap}" th:object="${invoiceForm}" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="invoice-workspace">
                     <section class="invoice-card invoice-products-card">
                         <div class="invoice-card-heading">

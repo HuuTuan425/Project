@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 public interface ProductBatchRepository extends JpaRepository<ProductBatch, Long> {
@@ -35,4 +36,37 @@ public interface ProductBatchRepository extends JpaRepository<ProductBatch, Long
               and (b.expiryDate is null or b.expiryDate >= :today)
             """)
     boolean hasSellableStock(@Param("productId") Long productId, @Param("today") LocalDate today);
+
+    interface NearestExpiry {
+        Long getProductId();
+        LocalDate getExpiryDate();
+    }
+
+    @Query("""
+            select b.product.maMatHang as productId, min(b.expiryDate) as expiryDate
+            from ProductBatch b
+            where b.product.maMatHang in :productIds and b.remainingQuantity > 0
+              and b.expiryDate is not null
+            group by b.product.maMatHang
+            """)
+    List<NearestExpiry> findNearestExpiryDates(@Param("productIds") Collection<Long> productIds);
+
+    @Query("""
+            select distinct b.product.maMatHang from ProductBatch b
+            where b.remainingQuantity > 0 and b.expiryDate < :today
+            order by b.product.maMatHang
+            """)
+    List<Long> findProductIdsWithExpiredStock(@Param("today") LocalDate today);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select b from ProductBatch b
+            where b.product.maMatHang = :productId
+              and b.remainingQuantity > 0 and b.expiryDate < :today
+            order by b.id
+            """)
+    List<ProductBatch> findExpiredBatchesForUpdate(
+            @Param("productId") Long productId,
+            @Param("today") LocalDate today
+    );
 }

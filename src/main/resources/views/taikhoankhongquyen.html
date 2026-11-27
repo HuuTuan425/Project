@@ -11,8 +11,7 @@
         <h1>Không có quyền truy cập</h1>
         <p>Tài khoản này chưa được cấp quyền sử dụng chức năng bạn chọn.</p>
         <a th:href="@{/dang-nhap}">Quay lại trang đăng nhập</a>
-        <form th:action="@{/logout}" method="post" class="logout-form">
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <form th:action="@{/dang-xuat}" method="post" class="logout-form">
             <button type="submit" class="btn btn-danger">Đăng xuất</button>
         </form>
     </main>

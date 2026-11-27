@@ -7,8 +7,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @Service
 public class MatHangService {
@@ -30,6 +34,21 @@ public class MatHangService {
 
     public List<MatHang> searchProducts(Long productId, String query) {
         return matHangRepository.searchProducts(productId, query);
+    }
+
+    public Map<Long, ExpiryInfo> nearestExpiryDates(List<MatHang> products, LocalDate today) {
+        List<Long> productIds = products.stream().map(MatHang::getMaMatHang).toList();
+        if (productIds.isEmpty()) {
+            return Map.of();
+        }
+        return productBatchRepository.findNearestExpiryDates(productIds).stream()
+                .collect(Collectors.toMap(
+                        ProductBatchRepository.NearestExpiry::getProductId,
+                        result -> new ExpiryInfo(result.getExpiryDate(),
+                                ChronoUnit.DAYS.between(today, result.getExpiryDate()))));
+    }
+
+    public record ExpiryInfo(LocalDate date, long daysRemaining) {
     }
 
     public MatHang findById(Long id) {

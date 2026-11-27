@@ -13,7 +13,6 @@
             <p th:if="${errorMessage}" class="message error" th:text="${errorMessage}"></p>
             <form th:if="${isAdmin or isPurchasing}" th:action="@{/nhap-hang/nha-cung-cap}"
                   th:object="${supplierForm}" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <input type="hidden" th:field="*{id}">
                 <div class="supplier-form-grid">
                     <div class="form-group">
@@ -50,7 +49,6 @@
 
             <form th:if="${isWarehouse}" th:action="@{/nhap-hang/nha-cung-cap/de-xuat}"
                   th:object="${supplierProposalForm}" method="post" class="supplier-proposal-form">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <h2>Đề xuất nhà cung cấp mới</h2>
                 <p>Đề xuất sẽ được quản trị viên xem xét trước khi thêm vào danh sách chính thức.</p>
                 <div class="supplier-form-grid">
@@ -105,12 +103,10 @@
                                     <div th:if="${proposal.status.name() == 'PENDING'}" class="supplier-actions">
                                         <form th:action="@{/nhap-hang/nha-cung-cap/de-xuat/{id}/duyet(id=${proposal.id})}"
                                               method="post">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                                             <button type="submit" class="btn btn-success">Duyệt</button>
                                         </form>
                                         <form th:action="@{/nhap-hang/nha-cung-cap/de-xuat/{id}/tu-choi(id=${proposal.id})}"
                                               method="post">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                                             <button type="submit" class="btn btn-outline-danger">Từ chối</button>
                                         </form>
                                     </div>
@@ -190,7 +186,6 @@
                 </div>
             </dialog>
             <form id="supplier-delete-form" method="post" hidden>
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             </form>
             <script>
                 const supplierDeleteDialog = document.getElementById('supplier-delete-confirmation');

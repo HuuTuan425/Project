@@ -7,7 +7,6 @@
             <h2>Sửa hồ sơ tài khoản</h2>
             <p>Tên đăng nhập: <strong th:text="${account.username}"></strong></p>
             <form th:action="@{/tai-khoan/{id}/sua(id=${account.id})}" th:object="${profileForm}" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="form-group">
                     <label for="fullName">Họ và tên nhân viên</label>
                     <input id="fullName" type="text" th:field="*{fullName}" maxlength="120" required>

@@ -4,12 +4,14 @@ import com.vuhuutuan.Project.model.KhachHang;
 import com.vuhuutuan.Project.model.HoaDon;
 import com.vuhuutuan.Project.model.MatHang;
 import com.vuhuutuan.Project.model.PaymentMethod;
+import com.vuhuutuan.Project.model.SessionUser;
+import com.vuhuutuan.Project.config.SessionAuthInterceptor;
 import com.vuhuutuan.Project.service.HoaDonService;
 import com.vuhuutuan.Project.service.KhachHangService;
 import com.vuhuutuan.Project.service.MatHangService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.security.core.Authentication;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -142,7 +144,7 @@ public class HoaDonController {
     @PostMapping("/lap")
     public String lap(
             @ModelAttribute("invoiceForm") InvoiceForm invoiceForm,
-            Authentication authentication,
+            HttpSession session,
             Model model,
             RedirectAttributes redirectAttributes
     ) {
@@ -154,7 +156,7 @@ public class HoaDonController {
                     invoiceForm.getPaymentMethod(),
                     invoiceForm.getCashTendered(),
                     invoiceForm.isNonCashPaymentConfirmed(),
-                    authentication.getName()
+                    currentUsername(session)
             );
             redirectAttributes.addFlashAttribute("successMessage", "Đã lập hóa đơn thành công.");
             return "redirect:/hoa-don/" + invoice.getMaHoaDon();
@@ -187,15 +189,15 @@ public class HoaDonController {
     @GetMapping("/{id}")
     public String chiTiet(
             @PathVariable Long id,
-            Authentication authentication,
+            HttpSession session,
             Model model,
             RedirectAttributes redirectAttributes
     ) {
         try {
             var invoice = hoaDonService.findById(id);
-            if (!isAdmin(authentication) && !isManager(authentication)
+            if (!isAdmin(session) && !isManager(session)
                     && (invoice.getThuNgan() == null
-                    || !invoice.getThuNgan().getUsername().equalsIgnoreCase(authentication.getName()))) {
+                    || !invoice.getThuNgan().getUsername().equalsIgnoreCase(currentUsername(session)))) {
                 return "redirect:/khong-co-quyen";
             }
             model.addAttribute("hoaDon", invoice);
@@ -210,11 +212,11 @@ public class HoaDonController {
     public String huy(
             @PathVariable Long id,
             @RequestParam String reason,
-            Authentication authentication,
+            HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
         try {
-            hoaDonService.cancelInvoice(id, reason, authentication.getName());
+            hoaDonService.cancelInvoice(id, reason, currentUsername(session));
             redirectAttributes.addFlashAttribute("successMessage",
                     "Đã hủy hóa đơn, hoàn lại tồn kho và điều chỉnh điểm thưởng.");
         } catch (IllegalArgumentException | IllegalStateException | NoSuchElementException exception) {
@@ -258,13 +260,18 @@ public class HoaDonController {
         model.addAttribute("redeemablePoints", redeemablePoints);
     }
 
-    private boolean isAdmin(Authentication authentication) {
-        return authentication.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+    private boolean isAdmin(HttpSession session) {
+        SessionUser user = (SessionUser) session.getAttribute(SessionAuthInterceptor.SESSION_USER_ATTRIBUTE);
+        return user != null && user.isAdmin();
     }
 
-    private boolean isManager(Authentication authentication) {
-        return authentication.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals("ROLE_MANAGER"));
+    private boolean isManager(HttpSession session) {
+        SessionUser user = (SessionUser) session.getAttribute(SessionAuthInterceptor.SESSION_USER_ATTRIBUTE);
+        return user != null && user.isManager();
+    }
+
+    private String currentUsername(HttpSession session) {
+        SessionUser user = (SessionUser) session.getAttribute(SessionAuthInterceptor.SESSION_USER_ATTRIBUTE);
+        return user == null ? "" : user.username();
     }
 }

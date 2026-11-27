@@ -2,13 +2,15 @@ package com.vuhuutuan.Project.controller;
 
 import com.vuhuutuan.Project.model.AccountRole;
 import com.vuhuutuan.Project.model.AppUser;
+import com.vuhuutuan.Project.model.SessionUser;
+import com.vuhuutuan.Project.config.SessionAuthInterceptor;
 import com.vuhuutuan.Project.service.AccountService;
 import com.vuhuutuan.Project.service.PasswordResetService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.security.core.Authentication;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -32,6 +34,11 @@ public class AccountController {
     public AccountController(AccountService accountService, PasswordResetService passwordResetService) {
         this.accountService = accountService;
         this.passwordResetService = passwordResetService;
+    }
+
+    private String currentUsername(HttpSession session) {
+        SessionUser user = (SessionUser) session.getAttribute(SessionAuthInterceptor.SESSION_USER_ATTRIBUTE);
+        return user == null ? "" : user.username();
     }
 
     @GetMapping("/tai-khoan")
@@ -78,7 +85,7 @@ public class AccountController {
             @PathVariable Long id,
             @Valid @ModelAttribute("profileForm") UpdateAccountForm form,
             BindingResult bindingResult,
-            Authentication authentication,
+            HttpSession session,
             Model model,
             RedirectAttributes redirectAttributes
     ) {
@@ -99,7 +106,7 @@ public class AccountController {
         }
         try {
             accountService.updateProfile(id, form.getFullName(), form.getPhone(), form.getEmail(),
-                    form.getRole(), authentication.getName());
+                    form.getRole(), currentUsername(session));
             redirectAttributes.addFlashAttribute("successMessage", "Đã cập nhật hồ sơ tài khoản.");
         } catch (IllegalArgumentException | java.util.NoSuchElementException exception) {
             redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
@@ -146,11 +153,11 @@ public class AccountController {
     public String changeStatus(
             @PathVariable Long id,
             @RequestParam boolean enabled,
-            Authentication authentication,
+            HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
         try {
-            accountService.setEnabled(id, enabled, authentication.getName());
+            accountService.setEnabled(id, enabled, currentUsername(session));
             redirectAttributes.addFlashAttribute("successMessage",
                     enabled ? "Đã mở khóa tài khoản." : "Đã khóa tài khoản.");
         } catch (IllegalArgumentException | java.util.NoSuchElementException exception) {
@@ -177,11 +184,11 @@ public class AccountController {
     @PostMapping("/tai-khoan/{id}/xoa")
     public String deleteAccount(
             @PathVariable Long id,
-            Authentication authentication,
+            HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
         try {
-            accountService.deleteAccount(id, authentication.getName());
+            accountService.deleteAccount(id, currentUsername(session));
             redirectAttributes.addFlashAttribute("successMessage",
                     "Đã chuyển tài khoản sang trạng thái đã xóa; lịch sử vẫn được giữ.");
         } catch (IllegalArgumentException | java.util.NoSuchElementException exception) {

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Arrays;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 import java.util.NoSuchElementException;
@@ -44,6 +45,7 @@ public class MatHangController {
         String query = search.isEmpty() ? null : "%" + search.toLowerCase(Locale.ROOT) + "%";
         List<MatHang> products = matHangService.searchProducts(productId, query);
         model.addAttribute("dsMatHang", products);
+        model.addAttribute("nearestExpiry", matHangService.nearestExpiryDates(products, LocalDate.now()));
         model.addAttribute("q", search);
         model.addAttribute("totalMatHang", products.size());
         return "mathang/danhsach";

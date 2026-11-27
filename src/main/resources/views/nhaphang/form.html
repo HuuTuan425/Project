@@ -18,7 +18,6 @@
                 Chưa có nhà cung cấp. <a th:href="@{/nhap-hang/nha-cung-cap}">Thêm nhà cung cấp</a> trước.
             </p>
             <form th:action="@{/nhap-hang}" th:object="${purchaseOrderForm}" method="post" class="purchase-form">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="purchase-order-grid">
                     <div class="form-group">
                         <label for="supplierId">Nhà cung cấp <span class="required-mark">*</span></label>

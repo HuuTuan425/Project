@@ -2,6 +2,7 @@ package com.vuhuutuan.Project.controller;
 
 import com.vuhuutuan.Project.service.PasswordResetService;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -34,7 +35,19 @@ public class PasswordResetController {
     }
 
     @GetMapping("/dat-lai-mat-khau")
-    public String resetForm(@RequestParam(required = false) String token, Model model) {
+    public String resetForm(
+            @RequestParam(required = false) String token,
+            Model model,
+            HttpServletResponse response,
+            RedirectAttributes redirectAttributes
+    ) {
+        response.setHeader("Cache-Control", "no-store");
+        try {
+            passwordResetService.validateResetLink(token);
+        } catch (IllegalArgumentException exception) {
+            redirectAttributes.addFlashAttribute("resetError", exception.getMessage());
+            return "redirect:/quen-mat-khau";
+        }
         PasswordResetForm form = new PasswordResetForm();
         form.setToken(token);
         model.addAttribute("resetForm", form);

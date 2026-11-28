@@ -15,6 +15,7 @@
                 <h1>Quên mật khẩu?</h1>
                 <p>Nhập email đã đăng ký để nhận liên kết đặt lại mật khẩu.</p>
             </div>
+            <p th:if="${resetError}" class="message error" th:text="${resetError}" role="alert"></p>
             <p th:if="${requestSubmitted}" class="message success" role="status" aria-live="polite">
                 Nếu email khớp với một tài khoản đang hoạt động, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.
             </p>

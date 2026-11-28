@@ -70,6 +70,14 @@
             <script th:if="${canReceiveOrders and purchaseOrder.status.name() != 'RECEIVED'}">
                 const receiveForm = document.querySelector('.purchase-receive-actions form');
                 const receiveDialog = document.getElementById('receive-confirmation');
+                receiveForm.querySelectorAll('input[name="receivedQuantities"]').forEach((input) => {
+                    input.addEventListener('input', () => input.setCustomValidity(''));
+                    input.addEventListener('invalid', () => {
+                        if (input.validity.rangeUnderflow || input.validity.rangeOverflow) {
+                            input.setCustomValidity('Số lượng không hợp lệ.');
+                        }
+                    });
+                });
                 receiveForm.addEventListener('submit', (event) => {
                     if (receiveDialog.returnValue !== 'confirm') {
                         event.preventDefault();

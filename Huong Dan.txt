@@ -3,8 +3,9 @@
 ## Đăng nhập và vai trò tài khoản
 
 Ứng dụng tự động tạo bảng `tai_khoan` khi khởi động. Trước lần chạy đầu tiên,
-hãy đặt biến môi trường `BOOTSTRAP_ADMIN_USERNAME` và
-`BOOTSTRAP_ADMIN_PASSWORD` để tạo tài khoản quản trị viên ban đầu. Hãy dùng mật
+hãy đặt biến môi trường `BOOTSTRAP_ADMIN_USERNAME`,
+`BOOTSTRAP_ADMIN_PASSWORD` và `BOOTSTRAP_ADMIN_EMAIL` để tạo tài khoản quản trị
+viên ban đầu. Hãy dùng mật
 khẩu riêng, có ít nhất 8 ký tự. Mật khẩu được lưu dưới dạng mã băm BCrypt,
 không lưu dưới dạng văn bản thuần. Tài khoản ban đầu chỉ được tạo nếu tên đăng
 nhập chưa tồn tại.
@@ -15,25 +16,29 @@ Trong Windows PowerShell, hãy đặt các biến trong terminal sẽ dùng đ�
 ```powershell
 $env:BOOTSTRAP_ADMIN_USERNAME = "admin"
 $env:BOOTSTRAP_ADMIN_PASSWORD = "choose-a-unique-password"
+$env:BOOTSTRAP_ADMIN_EMAIL = "admin@example.com"
 .\mvnw.cmd spring-boot:run
 ```
 
 Mở `http://localhost:8081/dang-nhap`. Quản trị viên có thể tạo, sửa và khóa tài
-khoản tại `/tai-khoan`. Mỗi tài khoản lưu tên nhân viên, số điện thoại/email
-(không bắt buộc), trạng thái hoạt động, thời điểm tạo và lần đăng nhập thành
-công gần nhất. Tài khoản bị khóa không thể đăng nhập; phiên đang hoạt động sẽ
-bị kết thúc ở yêu cầu tiếp theo. Hồ sơ tài khoản được giữ lại để bảo toàn lịch
-sử hóa đơn và nhập hàng.
+khoản tại `/tai-khoan`. Mỗi tài khoản lưu tên nhân viên và email (bắt buộc để
+đặt lại mật khẩu), số điện thoại (không bắt buộc), trạng thái hoạt động, thời
+điểm tạo và lần đăng nhập thành công gần nhất. Tài khoản bị khóa không thể đăng
+nhập; phiên đang hoạt động sẽ bị kết thúc ở yêu cầu tiếp theo. Hồ sơ tài khoản
+được giữ lại để bảo toàn lịch sử hóa đơn và nhập hàng.
 
 Do lược đồ cũ không lưu ngày tạo, các tài khoản hiện có được gán thời điểm di
-chuyển dữ liệu làm ngày tạo. Việc ghi nhận lần đăng nhập gần nhất bắt đầu sau
-bản cập nhật này. Email được dùng để gửi liên kết đặt lại mật khẩu; số điện
-thoại hiện chỉ là thông tin liên hệ.
+chuyển dữ liệu làm ngày tạo. Các tài khoản cũ chưa có email cần được cập nhật
+trong trang quản lý tài khoản trước khi dùng chức năng đặt lại mật khẩu. Việc
+ghi nhận lần đăng nhập gần nhất bắt đầu sau bản cập nhật này. Số điện thoại hiện
+chỉ là thông tin liên hệ.
 
 Quản trị viên có thể gửi liên kết đặt lại đến email của tài khoản tại `/tai-khoan`.
 Người dùng cũng có thể chọn “Quên mật khẩu?” ở trang đăng nhập và nhập email
 đã đăng ký. Ứng dụng không tiết lộ email có tồn tại hay không; liên kết chỉ dùng
-một lần và hết hạn sau 30 phút. Cần cấu hình SMTP trước khi sử dụng:
+một lần và hết hạn sau 10 phút. Liên kết được kiểm tra khi mở và khi gửi mật khẩu.
+Liên kết gửi trước bản cập nhật này không còn sử dụng được; hãy yêu cầu liên kết
+mới. Cần cấu hình SMTP trước khi sử dụng:
 
 ```powershell
 $env:MAIL_PORT = "587"

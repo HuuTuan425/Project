@@ -454,7 +454,7 @@ class ProjectApplicationTests {
 		customer.setHoTen("Khách hóa đơn cũ");
 		customer.setSoCMND(Long.toString(Math.abs(UUID.randomUUID().getLeastSignificantBits()
 				% 1_000_000_000_000L)));
-		customer.setLoaiKhachHang(LoaiKhachHang.MUA_LE);
+		customer.setLoaiKhachHang(LoaiKhachHang.KHACH_HANG_THONG_THUONG);
 		customer.setDiemThuong(0);
 		khachHangRepository.save(customer);
 		HoaDon legacyInvoice = new HoaDon();
@@ -846,7 +846,7 @@ class ProjectApplicationTests {
 			customer.setHoTen("Khách " + searchToken + " " + index);
 			customer.setSoCMND(Long.toString(100_000_000_000L
 					+ Math.abs(UUID.randomUUID().getLeastSignificantBits() % 900_000_000_000L)));
-			customer.setLoaiKhachHang(LoaiKhachHang.MUA_LE);
+			customer.setLoaiKhachHang(LoaiKhachHang.KHACH_HANG_THONG_THUONG);
 			khachHangRepository.save(customer);
 			if (index == 0) {
 				firstCustomerName = customer.getHoTen();
@@ -889,7 +889,7 @@ class ProjectApplicationTests {
 		MockHttpSession session = login(admin.getUsername());
 		KhachHang customer = new KhachHang();
 		customer.setHoTen("Khách hàng xóa mềm");
-		customer.setLoaiKhachHang(LoaiKhachHang.MUA_LE);
+		customer.setLoaiKhachHang(LoaiKhachHang.KHACH_HANG_THONG_THUONG);
 		customer.setDiemThuong(0);
 		customer = khachHangRepository.save(customer);
 
@@ -1139,7 +1139,7 @@ class ProjectApplicationTests {
 		KhachHang customer = new KhachHang();
 		customer.setHoTen("Khách kiểm thử");
 		customer.setSoCMND(Long.toString(Math.abs(UUID.randomUUID().getLeastSignificantBits() % 1_000_000_000_000L)));
-		customer.setLoaiKhachHang(LoaiKhachHang.MUA_LE);
+		customer.setLoaiKhachHang(LoaiKhachHang.KHACH_HANG_THONG_THUONG);
 		customer.setDiemThuong(0);
 		khachHangRepository.save(customer);
 

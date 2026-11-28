@@ -19,6 +19,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.NoSuchElementException;
 
@@ -26,7 +27,8 @@ import java.util.NoSuchElementException;
 public class PasswordResetService {
     private static final Logger logger = LoggerFactory.getLogger(PasswordResetService.class);
     private static final int TOKEN_BYTES = 32;
-    private static final int TOKEN_EXPIRY_MINUTES = 30;
+    private static final int TOKEN_EXPIRY_MINUTES = 10;
+    private static final String TOKEN_VERSION_PREFIX = "1";
 
     private final AppUserRepository appUserRepository;
     private final PasswordResetTokenRepository tokenRepository;
@@ -83,16 +85,19 @@ public class PasswordResetService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public void validateResetLink(String rawToken) {
+        PasswordResetToken resetToken = tokenRepository.findByTokenHash(hashToken(rawToken))
+                .orElseThrow(() -> invalidToken());
+        validateToken(resetToken);
+    }
+
     @Transactional
     public void resetPassword(String rawToken, String newPassword) {
         validatePassword(newPassword);
         PasswordResetToken resetToken = tokenRepository.findByTokenHashForUpdate(hashToken(rawToken))
                 .orElseThrow(() -> invalidToken());
-        if (!resetToken.getExpiresAt().isAfter(LocalDateTime.now())
-                || !resetToken.getAccount().isEnabled()
-                || resetToken.getAccount().isDeleted()) {
-            throw invalidToken();
-        }
+        validateToken(resetToken);
 
         AppUser account = resetToken.getAccount();
         account.setPasswordHash(passwordEncoder.encode(newPassword));
@@ -100,12 +105,21 @@ public class PasswordResetService {
         tokenRepository.delete(resetToken);
     }
 
+    private void validateToken(PasswordResetToken resetToken) {
+        if (!resetToken.getExpiresAt().isAfter(LocalDateTime.now())
+                || !resetToken.getAccount().isEnabled()
+                || resetToken.getAccount().isDeleted()) {
+            throw invalidToken();
+        }
+    }
+
     private boolean sendResetLink(AppUser account, boolean reportFailure) {
         byte[] randomBytes = new byte[TOKEN_BYTES];
         secureRandom.nextBytes(randomBytes);
-        String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+        String rawToken = TOKEN_VERSION_PREFIX + Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
         String tokenHash = hashToken(rawToken);
-        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(TOKEN_EXPIRY_MINUTES);
+        LocalDateTime expiresAt = LocalDateTime.now().truncatedTo(ChronoUnit.MICROS)
+                .plusMinutes(TOKEN_EXPIRY_MINUTES);
 
         PasswordResetToken resetToken = tokenRepository.findById(account.getId())
                 .orElseGet(() -> new PasswordResetToken(account, tokenHash, expiresAt));
@@ -138,7 +152,7 @@ public class PasswordResetService {
     }
 
     private String hashToken(String rawToken) {
-        if (rawToken == null || rawToken.length() != 43) {
+        if (rawToken == null || rawToken.length() != 44 || !rawToken.startsWith(TOKEN_VERSION_PREFIX)) {
             throw invalidToken();
         }
         try {

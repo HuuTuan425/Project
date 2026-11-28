@@ -48,7 +48,7 @@
             </form>
 
             <form th:if="${isWarehouse}" th:action="@{/nhap-hang/nha-cung-cap/de-xuat}"
-                  th:object="${supplierProposalForm}" method="post" class="supplier-proposal-form">
+                  th:object="${supplierProposalForm}" method="post" class="supplier-proposal-form" novalidate>
                 <h2>Đề xuất nhà cung cấp mới</h2>
                 <p>Đề xuất sẽ được quản trị viên xem xét trước khi thêm vào danh sách chính thức.</p>
                 <div class="supplier-form-grid">
@@ -60,7 +60,9 @@
                     </div>
                     <div class="form-group">
                         <label for="proposal-phone">Số điện thoại</label>
-                        <input id="proposal-phone" type="tel" th:field="*{phone}" maxlength="30">
+                        <input id="proposal-phone" type="tel" th:field="*{phone}" maxlength="30"
+                               inputmode="numeric">
+                        <small class="field-error" th:errors="*{phone}"></small>
                     </div>
                     <div class="form-group">
                         <label for="proposal-email">Email</label>
@@ -70,6 +72,7 @@
                     <div class="form-group">
                         <label for="proposal-address">Địa chỉ</label>
                         <input id="proposal-address" type="text" th:field="*{address}" maxlength="255">
+                        <small class="field-error" th:errors="*{address}"></small>
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary">Gửi đề xuất</button>

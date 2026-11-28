@@ -18,17 +18,20 @@ public class AccountBootstrap implements ApplicationRunner {
 
     private final String username;
     private final String password;
+    private final String email;
     private final AppUserRepository appUserRepository;
     private final AccountService accountService;
 
     public AccountBootstrap(
             @Value("${app.bootstrap-admin.username:}") String username,
             @Value("${app.bootstrap-admin.password:}") String password,
+            @Value("${app.bootstrap-admin.email:}") String email,
             AppUserRepository appUserRepository,
             AccountService accountService
     ) {
         this.username = username.trim();
         this.password = password;
+        this.email = email.trim();
         this.appUserRepository = appUserRepository;
         this.accountService = accountService;
     }
@@ -36,11 +39,12 @@ public class AccountBootstrap implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         if (username.isBlank() && password.isBlank()) {
-            logger.warn("No initial administrator configured. Set BOOTSTRAP_ADMIN_USERNAME and BOOTSTRAP_ADMIN_PASSWORD.");
+            logger.warn("No initial administrator configured. Set BOOTSTRAP_ADMIN_USERNAME, "
+                    + "BOOTSTRAP_ADMIN_PASSWORD, and BOOTSTRAP_ADMIN_EMAIL.");
             return;
         }
         if (username.isBlank() || password.isBlank()) {
-            throw new IllegalStateException("Both bootstrap administrator environment variables must be set.");
+            throw new IllegalStateException("Bootstrap administrator username and password must both be set.");
         }
         if (username.length() > 50) {
             throw new IllegalStateException("Bootstrap administrator username cannot exceed 50 characters.");
@@ -51,8 +55,14 @@ public class AccountBootstrap implements ApplicationRunner {
         if (appUserRepository.existsByUsernameIgnoreCase(username)) {
             return;
         }
+        if (email.isBlank()) {
+            throw new IllegalStateException("Bootstrap administrator email must be set.");
+        }
+        if (email.length() > 150 || !email.matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")) {
+            throw new IllegalStateException("Bootstrap administrator email must be valid and at most 150 characters.");
+        }
 
-        accountService.createAccount(username, password, AccountRole.ADMIN);
+        accountService.createAccount(username, password, AccountRole.ADMIN, username, null, email);
         logger.info("Created the initial administrator account '{}'.", username);
     }
 }

@@ -14,6 +14,7 @@ public class UpdateAccountForm {
     @Size(max = 30, message = "Số điện thoại không được quá 30 ký tự.")
     private String phone;
 
+    @NotBlank(message = "Vui lòng nhập email để có thể đặt lại mật khẩu.")
     @Email(message = "Địa chỉ email không hợp lệ.")
     @Size(max = 150, message = "Email không được quá 150 ký tự.")
     private String email;

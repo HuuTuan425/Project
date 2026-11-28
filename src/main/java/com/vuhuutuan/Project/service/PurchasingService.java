@@ -280,7 +280,7 @@ public class PurchasingService {
             int received = receivedQuantities.get(index) == null ? -1 : receivedQuantities.get(index);
             int remaining = lines.get(index).getQuantity() - lines.get(index).getReceivedQuantity();
             if (received < 0 || received > remaining) {
-                throw new IllegalArgumentException("Số lượng nhận phải từ 0 đến số lượng còn thiếu.");
+                throw new IllegalArgumentException("Số lượng không hợp lệ.");
             }
             hasReceivedQuantity |= received > 0;
         }

@@ -32,7 +32,7 @@
                 <div class="form-group">
                     <label for="username">Tên đăng nhập</label>
                     <div class="auth-input-wrap">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg>
+                        <span class="login-icon login-icon-user" aria-hidden="true"></span>
                         <input id="username" name="username" type="text" placeholder="Nhập tên đăng nhập"
                                autocomplete="username" required autofocus>
                     </div>
@@ -40,19 +40,11 @@
                 <div class="form-group">
                     <label for="password">Mật khẩu</label>
                     <div class="auth-input-wrap">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3m-4 5v2"/></svg>
+                        <span class="login-icon login-icon-lock" aria-hidden="true"></span>
                         <input id="password" name="password" type="password" placeholder="Nhập mật khẩu"
                                autocomplete="current-password" required>
                         <button type="button" class="login-password-toggle" aria-label="Hiện mật khẩu">
-                            <svg class="eye-off" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>
-                                <circle cx="12" cy="12" r="2.5"/>
-                                <path d="M3 3l18 18"/>
-                            </svg>
-                            <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>
-                                <circle cx="12" cy="12" r="2.5"/>
-                            </svg>
+                            <span class="login-icon-eye" aria-hidden="true"></span>
                         </button>
                     </div>
                 </div>
@@ -73,7 +65,7 @@
                 </div>
                 <button type="submit" class="btn btn-primary auth-submit">
                     <span>Đăng nhập</span>
-                    <span aria-hidden="true">→</span>
+                    <!-- <span aria-hidden="true">→</span> -->
                 </button>
             </form>
             <p th:if="${param.logout}" class="message success toast" role="status" aria-live="polite">

@@ -51,11 +51,6 @@ public class AccountService {
     }
 
     @Transactional
-    public void createAccount(String username, String password, AccountRole role) {
-        createAccount(username, password, role, username, null, null);
-    }
-
-    @Transactional
     public void createAccount(
             String username,
             String password,
@@ -71,6 +66,7 @@ public class AccountService {
         if (password.getBytes(StandardCharsets.UTF_8).length > 72) {
             throw new IllegalArgumentException("Mật khẩu không được dài quá 72 byte UTF-8.");
         }
+        String normalizedEmail = normalizeRequiredEmail(email);
 
         AppUser account = new AppUser(
                 normalizedUsername,
@@ -79,7 +75,7 @@ public class AccountService {
         );
         account.setFullName(fullName.trim());
         account.setPhone(normalizeOptional(phone));
-        account.setEmail(normalizeOptional(email));
+        account.setEmail(normalizedEmail);
         appUserRepository.save(account);
     }
 
@@ -138,6 +134,7 @@ public class AccountService {
         if (role == null || role == AccountRole.KHAC) {
             throw new IllegalArgumentException("Loại tài khoản không hợp lệ.");
         }
+        String normalizedEmail = normalizeRequiredEmail(email);
         if (account.getUsername().equalsIgnoreCase(actingUsername) && account.getRole() != role) {
             throw new IllegalArgumentException("Bạn không thể tự thay đổi quyền của tài khoản đang đăng nhập.");
         }
@@ -147,7 +144,7 @@ public class AccountService {
         }
         account.setFullName(fullName.trim());
         account.setPhone(normalizeOptional(phone));
-        account.setEmail(normalizeOptional(email));
+        account.setEmail(normalizedEmail);
         account.setRole(role);
         appUserRepository.save(account);
     }
@@ -163,5 +160,16 @@ public class AccountService {
 
     private String normalizeOptional(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String normalizeRequiredEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Vui lòng nhập email để có thể đặt lại mật khẩu.");
+        }
+        String normalizedEmail = email.trim();
+        if (normalizedEmail.length() > 150) {
+            throw new IllegalArgumentException("Email không được quá 150 ký tự.");
+        }
+        return normalizedEmail;
     }
 }

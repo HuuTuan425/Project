@@ -57,13 +57,14 @@ public class RetailSchemaMigration implements ApplicationRunner {
                     CREATE TABLE IF NOT EXISTS password_reset_token (
                         account_id BIGINT NOT NULL,
                         token_hash CHAR(64) NOT NULL,
-                        expires_at DATETIME NOT NULL,
+                        expires_at DATETIME(6) NOT NULL,
                         PRIMARY KEY (account_id),
                         UNIQUE KEY uk_password_reset_token_hash (token_hash),
                         CONSTRAINT fk_password_reset_token_account
                             FOREIGN KEY (account_id) REFERENCES tai_khoan(id) ON DELETE CASCADE
                     )
                     """);
+            ensureResetTokenExpiryPrecision(statement, metadata, catalog);
             ensureColumn(statement, metadata, catalog, "hoa_don", "da_huy",
                     "ALTER TABLE hoa_don ADD COLUMN da_huy BOOLEAN NOT NULL DEFAULT FALSE");
             ensureColumn(statement, metadata, catalog, "hoa_don", "ngay_huy",
@@ -132,6 +133,14 @@ public class RetailSchemaMigration implements ApplicationRunner {
             );
             statement.executeUpdate(
                     "UPDATE tai_khoan SET ho_ten = ten_dang_nhap WHERE ho_ten IS NULL OR ho_ten = ''"
+            );
+            statement.executeUpdate(
+                    "UPDATE khach_hang SET loai_khach_hang = 'KHACH_HANG_THONG_THUONG' "
+                            + "WHERE loai_khach_hang = 'MUA_LE'"
+            );
+            statement.executeUpdate(
+                    "UPDATE khach_hang SET loai_khach_hang = 'KHACH_HANG_THANH_VIEN' "
+                            + "WHERE loai_khach_hang = 'MUA_BUON'"
             );
         }
     }
@@ -221,6 +230,21 @@ public class RetailSchemaMigration implements ApplicationRunner {
         );
         for (String createTable : ddl) {
             statement.executeUpdate(createTable);
+        }
+    }
+
+    private void ensureResetTokenExpiryPrecision(
+            Statement statement, DatabaseMetaData metadata, String catalog
+    ) throws SQLException {
+        try (ResultSet columns = metadata.getColumns(catalog, null, "password_reset_token", "expires_at")) {
+            if (!columns.next()) {
+                throw new IllegalStateException("Password reset expiry column does not exist.");
+            }
+            if (columns.getInt("DECIMAL_DIGITS") < 6) {
+                statement.executeUpdate(
+                        "ALTER TABLE password_reset_token MODIFY COLUMN expires_at DATETIME(6) NOT NULL"
+                );
+            }
         }
     }
 

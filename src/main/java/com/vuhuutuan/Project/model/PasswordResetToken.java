@@ -26,7 +26,7 @@ public class PasswordResetToken {
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     private String tokenHash;
 
-    @Column(name = "expires_at", nullable = false)
+    @Column(name = "expires_at", nullable = false, columnDefinition = "DATETIME(6)")
     private LocalDateTime expiresAt;
 
     protected PasswordResetToken() {
